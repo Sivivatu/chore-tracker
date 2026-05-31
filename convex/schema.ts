@@ -1,0 +1,108 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export const routineStatus = v.union(
+  v.literal("not_started"),
+  v.literal("in_progress"),
+  v.literal("submitted"),
+  v.literal("approved"),
+  v.literal("rejected"),
+  v.literal("paused"),
+);
+
+export default defineSchema({
+  households: defineTable({
+    name: v.string(),
+    createdAt: v.string(),
+  }),
+  parents: defineTable({
+    householdId: v.id("households"),
+    clerkUserId: v.string(),
+    name: v.string(),
+  }).index("by_clerk_user", ["clerkUserId"]),
+  children: defineTable({
+    householdId: v.id("households"),
+    name: v.string(),
+    pinHash: v.string(),
+    avatarColour: v.string(),
+    pointsBalance: v.number(),
+  }).index("by_household", ["householdId"]),
+  routineTemplates: defineTable({
+    householdId: v.id("households"),
+    name: v.string(),
+    type: v.union(
+      v.literal("morning"),
+      v.literal("evening"),
+      v.literal("weekend"),
+      v.literal("custom"),
+    ),
+    active: v.boolean(),
+    schedule: v.array(v.string()),
+    createdByParentId: v.id("parents"),
+  }).index("by_household", ["householdId"]),
+  choreSteps: defineTable({
+    householdId: v.id("households"),
+    routineTemplateId: v.id("routineTemplates"),
+    title: v.string(),
+    description: v.string(),
+    order: v.number(),
+    points: v.number(),
+    required: v.boolean(),
+    illustrationKey: v.string(),
+    accent: v.string(),
+  }).index("by_routine", ["routineTemplateId"]),
+  routineInstances: defineTable({
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    routineTemplateId: v.id("routineTemplates"),
+    date: v.string(),
+    status: routineStatus,
+    snapshotName: v.string(),
+    snapshotType: v.string(),
+    submittedAt: v.optional(v.string()),
+    approvedAt: v.optional(v.string()),
+    approvedByParentId: v.optional(v.id("parents")),
+    rejectedAt: v.optional(v.string()),
+    rejectionNote: v.optional(v.string()),
+  }).index("by_household_date", ["householdId", "date"]),
+  stepInstances: defineTable({
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    routineInstanceId: v.id("routineInstances"),
+    snapshotTitle: v.string(),
+    snapshotDescription: v.string(),
+    snapshotOrder: v.number(),
+    snapshotPoints: v.number(),
+    snapshotRequired: v.boolean(),
+    snapshotIllustrationKey: v.string(),
+    accent: v.string(),
+    completedAt: v.optional(v.string()),
+    completedByChildId: v.optional(v.id("children")),
+  }).index("by_routine_instance", ["routineInstanceId"]),
+  rewards: defineTable({
+    householdId: v.id("households"),
+    title: v.string(),
+    pointsCost: v.number(),
+    active: v.boolean(),
+  }).index("by_household", ["householdId"]),
+  reminders: defineTable({
+    householdId: v.id("households"),
+    kind: v.string(),
+    time: v.string(),
+    enabled: v.boolean(),
+  }).index("by_household", ["householdId"]),
+  holidayPauses: defineTable({
+    householdId: v.id("households"),
+    startDate: v.string(),
+    endDate: v.string(),
+    reason: v.string(),
+    createdByParentId: v.id("parents"),
+  }).index("by_household", ["householdId"]),
+  auditEvents: defineTable({
+    householdId: v.id("households"),
+    actorId: v.string(),
+    action: v.string(),
+    createdAt: v.string(),
+    metadata: v.optional(v.any()),
+  }).index("by_household", ["householdId"]),
+});
