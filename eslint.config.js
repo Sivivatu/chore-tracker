@@ -3,7 +3,19 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "node_modules", ".react-router", "convex/_generated"] },
+  {
+    ignores: [
+      "build",
+      "coverage",
+      "dist",
+      "node_modules",
+      "playwright-report",
+      "test-results",
+      ".react-router",
+      ".vercel",
+      "convex/_generated",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
