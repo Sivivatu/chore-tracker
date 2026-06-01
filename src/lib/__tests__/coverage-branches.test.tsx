@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { StepIllustration } from "@/components/child/StepIllustration";
 import { getCalendarSeries, getCompletionPercentage, getDashboardSummary } from "@/lib/dashboard";
-import { getRecentDateKeys, isWithinPause, toDateKey } from "@/lib/dates";
+import {
+  formatBritishDateLabel,
+  formatBritishDateTime,
+  getRecentDateKeys,
+  isWithinPause,
+  toDateKey,
+} from "@/lib/dates";
 import { canAccessChildRoutine } from "@/lib/permissions";
 import { readChildSession } from "@/lib/child-session";
 
@@ -40,6 +46,14 @@ describe("remaining helper branches", () => {
       "2026-05-30",
       "2026-05-31",
     ]);
+    expect(formatBritishDateLabel("2026-05-31", "2026-05-30")).toBe("Sun 31 May");
+    expect(formatBritishDateLabel("2027-01-01", "2026-12-31")).toBe("Fri 1 Jan 2027");
+    expect(formatBritishDateTime("2026-05-31T08:11:00.000Z", new Date("2026-01-01"))).toBe(
+      "31-05 08:11",
+    );
+    expect(formatBritishDateTime("2027-01-02T09:12:00.000Z", new Date("2026-01-01"))).toBe(
+      "02-01-27 09:12",
+    );
     expect(isWithinPause("2026-05-20", [])).toBe(false);
   });
 
