@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
 import { ClipboardCheck, Home, KeyRound, Settings, Star } from "lucide-react";
+import { AccountControls } from "@/components/auth/AccountControls";
 
 const nav = [
   { to: "/parent/dashboard", label: "Dashboard", icon: Home },
@@ -24,27 +25,30 @@ export function AppLayout({ children }: PropsWithChildren) {
               <p className="text-xs text-ink/60">Single-household routine board</p>
             </div>
           </Link>
-          <nav className="flex flex-wrap gap-1" aria-label="Main navigation">
-            {nav.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-ink/75 hover:bg-ink/5 [&.active]:bg-ink [&.active]:text-white"
-                >
-                  <Icon aria-hidden className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-            <Link
-              to="/child/unlock"
-              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-coral px-3 text-sm font-bold text-white hover:bg-coral/90"
-            >
-              Child mode
-            </Link>
-          </nav>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+            <nav className="flex flex-wrap gap-1" aria-label="Main navigation">
+              {nav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-ink/75 hover:bg-ink/5 [&.active]:bg-ink [&.active]:text-white"
+                  >
+                    <Icon aria-hidden className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <Link
+                to="/child/unlock"
+                className="inline-flex min-h-10 items-center gap-2 rounded-md bg-coral px-3 text-sm font-bold text-white hover:bg-coral/90"
+              >
+                Child mode
+              </Link>
+            </nav>
+            <AccountControls />
+          </div>
         </div>
       </header>
       <main>{children}</main>
