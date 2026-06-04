@@ -1,25 +1,62 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { RoutineStepRow } from "@/components/child/RoutineStepRow";
 import { Button } from "@/components/ui/Button";
-import { routineInstances } from "@/data/seed";
 
 export function ChildRoutinePage() {
   const { routineInstanceId } = useParams({ strict: false }) as { routineInstanceId?: string };
-  const instance =
-    routineInstances.find((routine) => routine.id === routineInstanceId) ?? routineInstances[0];
-  const [checkedSteps, setCheckedSteps] = useState(
-    () => new Set(instance.steps.filter((step) => step.completedAt).map((step) => step.id)),
+  const context = useQuery(api.households.currentContext);
+  const instance = useQuery(
+    api.routines.getInstanceWithSteps,
+    context?.household && routineInstanceId
+      ? {
+          householdId: context.household._id,
+          routineInstanceId: routineInstanceId as Id<"routineInstances">,
+        }
+      : "skip",
   );
-  const readOnly = instance.status === "submitted" || instance.status === "approved";
+  const submitRoutine = useMutation(api.childMode.submitRoutine);
+  const [toggledStepIds, setToggledStepIds] = useState(new Set<string>());
+  const readOnly = instance?.status === "submitted" || instance?.status === "approved";
+  const checkedSteps = useMemo(() => {
+    if (!instance) return new Set<string>();
+
+    return new Set(
+      instance.steps
+        .filter((step) => {
+          const completed = Boolean(step.completedAt);
+          return toggledStepIds.has(step.id) ? !completed : completed;
+        })
+        .map((step) => step.id),
+    );
+  }, [instance, toggledStepIds]);
 
   function toggleStep(stepId: string) {
-    setCheckedSteps((current) => {
+    setToggledStepIds((current) => {
       const next = new Set(current);
       if (next.has(stepId)) next.delete(stepId);
       else next.add(stepId);
       return next;
     });
+  }
+
+  async function submit() {
+    if (!context?.household || !instance) return;
+    await submitRoutine({
+      householdId: context.household._id,
+      routineInstanceId: instance._id,
+    });
+  }
+
+  if (instance === undefined) {
+    return <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">Loading...</section>;
+  }
+
+  if (instance === null) {
+    return <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">Routine not found.</section>;
   }
 
   return (
@@ -59,7 +96,9 @@ export function ChildRoutinePage() {
           <p className="text-lg font-black">
             {checkedSteps.size} of {instance.steps.length} steps ticked
           </p>
-          <Button disabled={readOnly || checkedSteps.size === 0}>Submit for approval</Button>
+          <Button disabled={readOnly || checkedSteps.size === 0} onClick={submit}>
+            Submit for approval
+          </Button>
         </div>
       </div>
     </section>

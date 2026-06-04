@@ -1,5 +1,5 @@
 import type { DailyRoutineInstance, HolidayPause } from "@/types/domain";
-import { getRecentDateKeys, isWithinPause } from "./dates";
+import { formatBritishDateLabel, getRecentDateKeys, isWithinPause, toDateKey } from "./dates";
 import { getApprovedPoints } from "./points";
 
 export function getCompletionPercentage(instances: DailyRoutineInstance[]): number {
@@ -31,14 +31,16 @@ export function getDashboardSummary(instances: DailyRoutineInstance[], pauses: H
 }
 
 export function getCalendarSeries(instances: DailyRoutineInstance[], pauses: HolidayPause[]) {
-  const keys = getRecentDateKeys(new Date("2026-05-31T12:00:00.000Z"), 7);
+  const anchorDate = new Date("2026-05-31T12:00:00.000Z");
+  const anchorDateKey = toDateKey(anchorDate);
+  const keys = getRecentDateKeys(anchorDate, 7);
   return keys.map((date) => {
     const dayInstances = instances.filter((instance) => instance.date === date);
     const paused = isWithinPause(date, pauses);
     const approved = dayInstances.filter((instance) => instance.status === "approved").length;
     return {
       date,
-      label: date.slice(5),
+      label: formatBritishDateLabel(date, anchorDateKey),
       approved,
       submitted: dayInstances.filter((instance) => instance.status === "submitted").length,
       paused: paused ? 1 : 0,

@@ -1,14 +1,36 @@
 import { Check, X } from "lucide-react";
-import { routineInstances } from "@/data/seed";
-import { getApprovalQueue } from "@/lib/dashboard";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 export function ParentApprovalPanel() {
-  const queue = getApprovalQueue(routineInstances);
+  const context = useQuery(api.households.currentContext);
+  const queue = useQuery(
+    api.approvals.queue,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+  const approve = useMutation(api.approvals.approve);
+  const reject = useMutation(api.approvals.reject);
+
+  async function approveRoutine(routineInstanceId: Id<"routineInstances">) {
+    if (!context?.household) return;
+    await approve({ householdId: context.household._id, routineInstanceId });
+  }
+
+  async function rejectRoutine(routineInstanceId: Id<"routineInstances">) {
+    if (!context?.household) return;
+    await reject({
+      householdId: context.household._id,
+      routineInstanceId,
+      note: "Please check this routine again.",
+    });
+  }
+
   return (
     <div className="grid gap-4">
-      {queue.map((instance) => (
+      {(queue ?? []).map((instance) => (
         <Card
           key={instance.id}
           className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
@@ -22,11 +44,11 @@ export function ParentApprovalPanel() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary">
+            <Button variant="secondary" onClick={() => rejectRoutine(instance._id)}>
               <X aria-hidden className="h-4 w-4" />
               Reject
             </Button>
-            <Button>
+            <Button onClick={() => approveRoutine(instance._id)}>
               <Check aria-hidden className="h-4 w-4" />
               Approve
             </Button>

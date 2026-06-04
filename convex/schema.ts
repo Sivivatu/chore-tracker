@@ -58,7 +58,12 @@ export default defineSchema({
     date: v.string(),
     status: routineStatus,
     snapshotName: v.string(),
-    snapshotType: v.string(),
+    snapshotType: v.union(
+      v.literal("morning"),
+      v.literal("evening"),
+      v.literal("weekend"),
+      v.literal("custom"),
+    ),
     submittedAt: v.optional(v.string()),
     approvedAt: v.optional(v.string()),
     approvedByParentId: v.optional(v.id("parents")),

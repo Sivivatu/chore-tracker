@@ -1,8 +1,15 @@
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { holidayPauses } from "@/data/seed";
 
 export function ParentPausesPage() {
+  const context = useQuery(api.households.currentContext);
+  const holidayPauses = useQuery(
+    api.holidayPauses.list,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+
   return (
     <section className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -13,8 +20,8 @@ export function ParentPausesPage() {
         <Button>Create pause</Button>
       </div>
       <div className="grid gap-4">
-        {holidayPauses.map((pause) => (
-          <Card key={pause.id}>
+        {(holidayPauses ?? []).map((pause) => (
+          <Card key={pause._id}>
             <h2 className="text-xl font-black">{pause.reason}</h2>
             <p className="mt-2 text-ink/65">
               {pause.startDate} to {pause.endDate}. These days do not count as missed and do not
