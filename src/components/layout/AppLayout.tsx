@@ -20,7 +20,8 @@ export function AppLayout({ children }: PropsWithChildren) {
   const childModeActive = hasActiveChildSession();
 
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const timeout = window.setTimeout(() => setMobileMenuOpen(false), 0);
+    return () => window.clearTimeout(timeout);
   }, [pathname]);
 
   useEffect(() => {
