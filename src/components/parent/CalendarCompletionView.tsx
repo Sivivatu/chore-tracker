@@ -17,13 +17,13 @@ export function CalendarCompletionView() {
   const days = getCalendarSeries(routineInstances ?? [], pauses);
 
   return (
-    <section className="rounded-lg border border-ink/10 bg-white p-5 shadow-panel">
+    <section className="w-full max-w-full overflow-hidden rounded-lg border border-ink/10 bg-white p-4 shadow-panel sm:p-5">
       <h2 className="text-lg font-black">Calendar view</h2>
-      <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))]">
         {days.map((day) => (
           <div
             key={day.date}
-            className="min-h-24 rounded-md border border-ink/10 bg-paper p-2 text-center"
+            className="min-h-24 min-w-0 rounded-md border border-ink/10 bg-paper p-2 text-center"
           >
             <p className="text-xs font-bold leading-tight text-ink/60">{day.label}</p>
             <p className="mt-2 text-2xl font-black leading-none">{day.approved}</p>
