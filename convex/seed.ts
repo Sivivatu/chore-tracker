@@ -1,4 +1,5 @@
 import { mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
@@ -102,14 +103,215 @@ const routines: SeedRoutine[] = [
   },
 ];
 
+async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
+  const now = new Date().toISOString();
+  const date = "2026-05-31";
+
+  const householdId = await ctx.db.insert("households", {
+    name: "The Parker Household",
+    createdAt: now,
+  });
+  const parentId = await ctx.db.insert("parents", {
+    householdId,
+    clerkUserId,
+    name: "Alex",
+  });
+  const childId = await ctx.db.insert("children", {
+    householdId,
+    name: "Maya",
+    pinHash: "1234",
+    avatarColour: "#ffcf5a",
+    pointsBalance: 42,
+  });
+
+  const routineTemplateIds: Id<"routineTemplates">[] = [];
+  const routineInstanceIds: Id<"routineInstances">[] = [];
+
+  for (const routine of routines) {
+    const routineTemplateId = await ctx.db.insert("routineTemplates", {
+      householdId,
+      name: routine.name,
+      type: routine.type,
+      active: true,
+      schedule: routine.schedule,
+      createdByParentId: parentId,
+    });
+    routineTemplateIds.push(routineTemplateId);
+
+    for (const step of routine.steps) {
+      await ctx.db.insert("choreSteps", {
+        householdId,
+        routineTemplateId,
+        ...step,
+      });
+    }
+
+    const completedCount = routine.status === "submitted" ? routine.steps.length : 2;
+    const routineInstanceId = await ctx.db.insert("routineInstances", {
+      householdId,
+      childId,
+      routineTemplateId,
+      date,
+      status: routine.status,
+      snapshotName: routine.name,
+      snapshotType: routine.type,
+      submittedAt: routine.status === "submitted" ? "2026-05-31T08:11:00.000Z" : undefined,
+    });
+    routineInstanceIds.push(routineInstanceId);
+
+    for (const [index, step] of routine.steps.entries()) {
+      await ctx.db.insert("stepInstances", {
+        householdId,
+        childId,
+        routineInstanceId,
+        snapshotTitle: step.title,
+        snapshotDescription: step.description,
+        snapshotOrder: step.order,
+        snapshotPoints: step.points,
+        snapshotRequired: step.required,
+        snapshotIllustrationKey: step.illustrationKey,
+        accent: step.accent,
+        completedAt: index < completedCount ? "2026-05-31T08:00:00.000Z" : undefined,
+        completedByChildId: index < completedCount ? childId : undefined,
+      });
+    }
+  }
+
+  await ctx.db.insert("rewards", {
+    householdId,
+    title: "Family film night",
+    pointsCost: 50,
+    active: true,
+  });
+  await ctx.db.insert("rewards", {
+    householdId,
+    title: "Pick the park",
+    pointsCost: 35,
+    active: true,
+  });
+  await ctx.db.insert("holidayPauses", {
+    householdId,
+    startDate: "2026-06-07",
+    endDate: "2026-06-12",
+    reason: "Half-term break",
+    createdByParentId: parentId,
+  });
+  await ctx.db.insert("auditEvents", {
+    householdId,
+    actorId: parentId,
+    action: "Demo data seeded",
+    createdAt: now,
+    metadata: { routineCount: routines.length },
+  });
+
+  return {
+    householdId,
+    parentId,
+    childId,
+    routineTemplateIds,
+    routineInstanceIds,
+    alreadySeeded: false,
+  };
+}
+
+async function deleteExistingDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
+  const parent = await ctx.db
+    .query("parents")
+    .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", clerkUserId))
+    .unique();
+
+  if (!parent) return;
+
+  const householdId = parent.householdId;
+  const routineInstances = await ctx.db
+    .query("routineInstances")
+    .withIndex("by_household_date", (query) => query.eq("householdId", householdId))
+    .collect();
+
+  for (const instance of routineInstances) {
+    const stepInstances = await ctx.db
+      .query("stepInstances")
+      .withIndex("by_routine_instance", (query) => query.eq("routineInstanceId", instance._id))
+      .collect();
+    for (const stepInstance of stepInstances) {
+      await ctx.db.delete(stepInstance._id);
+    }
+    await ctx.db.delete(instance._id);
+  }
+
+  const routineTemplates = await ctx.db
+    .query("routineTemplates")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+
+  for (const template of routineTemplates) {
+    const steps = await ctx.db
+      .query("choreSteps")
+      .withIndex("by_routine", (query) => query.eq("routineTemplateId", template._id))
+      .collect();
+    for (const step of steps) {
+      await ctx.db.delete(step._id);
+    }
+    await ctx.db.delete(template._id);
+  }
+
+  const routineTemplateVersions = await ctx.db
+    .query("routineTemplateVersions")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const version of routineTemplateVersions) {
+    await ctx.db.delete(version._id);
+  }
+
+  const children = await ctx.db
+    .query("children")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const child of children) {
+    await ctx.db.delete(child._id);
+  }
+
+  const rewards = await ctx.db
+    .query("rewards")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const reward of rewards) {
+    await ctx.db.delete(reward._id);
+  }
+
+  const reminders = await ctx.db
+    .query("reminders")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const reminder of reminders) {
+    await ctx.db.delete(reminder._id);
+  }
+
+  const holidayPauses = await ctx.db
+    .query("holidayPauses")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const pause of holidayPauses) {
+    await ctx.db.delete(pause._id);
+  }
+
+  const auditEvents = await ctx.db
+    .query("auditEvents")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const event of auditEvents) {
+    await ctx.db.delete(event._id);
+  }
+
+  await ctx.db.delete(parent._id);
+  await ctx.db.delete(householdId);
+}
+
 export const demo = mutation({
   args: {
     clerkUserId: v.string(),
   },
   handler: async (ctx, args) => {
-    const now = new Date().toISOString();
-    const date = "2026-05-31";
-
     const existingParent = await ctx.db
       .query("parents")
       .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", args.clerkUserId))
@@ -123,110 +325,23 @@ export const demo = mutation({
       };
     }
 
-    const householdId = await ctx.db.insert("households", {
-      name: "The Parker Household",
-      createdAt: now,
-    });
-    const parentId = await ctx.db.insert("parents", {
-      householdId,
-      clerkUserId: args.clerkUserId,
-      name: "Alex",
-    });
-    const childId = await ctx.db.insert("children", {
-      householdId,
-      name: "Maya",
-      pinHash: "1234",
-      avatarColour: "#ffcf5a",
-      pointsBalance: 42,
-    });
+    return await insertDemoHousehold(ctx, args.clerkUserId);
+  },
+});
 
-    const routineTemplateIds: Id<"routineTemplates">[] = [];
-    const routineInstanceIds: Id<"routineInstances">[] = [];
-
-    for (const routine of routines) {
-      const routineTemplateId = await ctx.db.insert("routineTemplates", {
-        householdId,
-        name: routine.name,
-        type: routine.type,
-        active: true,
-        schedule: routine.schedule,
-        createdByParentId: parentId,
-      });
-      routineTemplateIds.push(routineTemplateId);
-
-      for (const step of routine.steps) {
-        await ctx.db.insert("choreSteps", {
-          householdId,
-          routineTemplateId,
-          ...step,
-        });
-      }
-
-      const completedCount = routine.status === "submitted" ? routine.steps.length : 2;
-      const routineInstanceId = await ctx.db.insert("routineInstances", {
-        householdId,
-        childId,
-        routineTemplateId,
-        date,
-        status: routine.status,
-        snapshotName: routine.name,
-        snapshotType: routine.type,
-        submittedAt: routine.status === "submitted" ? "2026-05-31T08:11:00.000Z" : undefined,
-      });
-      routineInstanceIds.push(routineInstanceId);
-
-      for (const [index, step] of routine.steps.entries()) {
-        await ctx.db.insert("stepInstances", {
-          householdId,
-          childId,
-          routineInstanceId,
-          snapshotTitle: step.title,
-          snapshotDescription: step.description,
-          snapshotOrder: step.order,
-          snapshotPoints: step.points,
-          snapshotRequired: step.required,
-          snapshotIllustrationKey: step.illustrationKey,
-          accent: step.accent,
-          completedAt: index < completedCount ? "2026-05-31T08:00:00.000Z" : undefined,
-          completedByChildId: index < completedCount ? childId : undefined,
-        });
-      }
+export const e2eReset = mutation({
+  args: {
+    clerkUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (process.env.E2E_AUTH_BYPASS !== "true") {
+      throw new Error("E2E reset is only available when E2E_AUTH_BYPASS is enabled");
+    }
+    if (args.clerkUserId !== process.env.E2E_CLERK_USER_ID) {
+      throw new Error("E2E reset can only seed the configured e2e parent");
     }
 
-    await ctx.db.insert("rewards", {
-      householdId,
-      title: "Family film night",
-      pointsCost: 50,
-      active: true,
-    });
-    await ctx.db.insert("rewards", {
-      householdId,
-      title: "Pick the park",
-      pointsCost: 35,
-      active: true,
-    });
-    await ctx.db.insert("holidayPauses", {
-      householdId,
-      startDate: "2026-06-07",
-      endDate: "2026-06-12",
-      reason: "Half-term break",
-      createdByParentId: parentId,
-    });
-    await ctx.db.insert("auditEvents", {
-      householdId,
-      actorId: parentId,
-      action: "Demo data seeded",
-      createdAt: now,
-      metadata: { routineCount: routines.length },
-    });
-
-    return {
-      householdId,
-      parentId,
-      childId,
-      routineTemplateIds,
-      routineInstanceIds,
-      alreadySeeded: false,
-    };
+    await deleteExistingDemoHousehold(ctx, args.clerkUserId);
+    return await insertDemoHousehold(ctx, args.clerkUserId);
   },
 });

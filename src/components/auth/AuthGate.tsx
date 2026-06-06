@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import { Navigate } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
-import { hasClerkConfig } from "@/app/providers";
+import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 
 function MissingAuthConfig() {
   return (
@@ -35,6 +35,10 @@ function ClerkAuthGate({ children }: PropsWithChildren) {
 }
 
 export function AuthGate({ children }: PropsWithChildren) {
+  if (isE2EAuthBypass()) {
+    return children;
+  }
+
   if (!hasClerkConfig()) {
     return <MissingAuthConfig />;
   }

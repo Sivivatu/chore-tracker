@@ -1,12 +1,7 @@
-import {
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/clerk-react";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { useRouterState } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
-import { hasClerkConfig } from "@/app/providers";
+import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 import { Button } from "@/components/ui/Button";
 
 function ClerkAccountControls() {
@@ -41,6 +36,15 @@ function ClerkAccountControls() {
 }
 
 export function AccountControls() {
+  if (isE2EAuthBypass()) {
+    return (
+      <Button type="button" variant="secondary" className="min-h-10 px-3" disabled>
+        <LogIn aria-hidden className="h-4 w-4" />
+        Test auth
+      </Button>
+    );
+  }
+
   if (!hasClerkConfig()) {
     return (
       <Button type="button" variant="secondary" className="min-h-10 px-3" disabled>
