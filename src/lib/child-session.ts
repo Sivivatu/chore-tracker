@@ -1,4 +1,5 @@
 const storageKey = "chore-tracker-child-session";
+const parentReturnPathKey = "chore-tracker-parent-return-path";
 
 export type ChildModeSession = {
   childId: string;
@@ -35,4 +36,20 @@ export function readChildSession(): ChildModeSession | null {
 
 export function clearChildSession(): void {
   localStorage.removeItem(storageKey);
+}
+
+export function hasActiveChildSession(): boolean {
+  return readChildSession() !== null;
+}
+
+export function saveParentReturnPath(path: string): void {
+  sessionStorage.setItem(parentReturnPathKey, path);
+}
+
+export function readParentReturnPath(): string | null {
+  return sessionStorage.getItem(parentReturnPathKey);
+}
+
+export function clearParentReturnPath(): void {
+  sessionStorage.removeItem(parentReturnPathKey);
 }
