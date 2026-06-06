@@ -12,6 +12,7 @@ export function ParentRouteGate() {
   }, [locked, pathname]);
 
   if (locked) {
+    saveParentReturnPath(`${pathname}${window.location.search}`);
     return <Navigate to="/child/parent-unlock" replace />;
   }
 
