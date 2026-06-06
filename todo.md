@@ -1,6 +1,6 @@
 # Tasks to remember
 
-- [ ] need to add a lock on child page to prevent easy editing of routines & chores by child
+- [x] need to add a lock on child page to prevent easy editing of routines & chores by child
 - [ ] add a chores list with chores that can be done on different time schedules. they refresh each week
 - [ ] update reward page to link to live datasets. also add reward editing so rewards can be customised.
 - [ ] find out how to gate signups
