@@ -110,6 +110,7 @@ async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
   const householdId = await ctx.db.insert("households", {
     name: "The Parker Household",
     createdAt: now,
+    parentLockPinHash: "2468",
   });
   const parentId = await ctx.db.insert("parents", {
     householdId,
