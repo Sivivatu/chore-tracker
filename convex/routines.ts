@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { assertHouseholdAccess, requireParent } from "./security";
+import { assertHouseholdAccess } from "./security";
 import type { Doc, Id } from "./_generated/dataModel";
 
 const routineType = v.union(
@@ -251,7 +251,7 @@ export const updateTemplate = mutation({
 export const listTodayForParent = query({
   args: { householdId: v.id("households"), date: v.string() },
   handler: async (ctx, args) => {
-    await requireParent(ctx);
+    await assertHouseholdAccess(ctx, args.householdId);
     return await ctx.db
       .query("routineInstances")
       .withIndex("by_household_date", (query) =>

@@ -1,5 +1,10 @@
 import { verifyToken } from "@clerk/backend";
-import { createRouteHandler, createUploadthing, type FileRouter, UploadThingError } from "uploadthing/server";
+import {
+  createRouteHandler,
+  createUploadthing,
+  type FileRouter,
+  UploadThingError,
+} from "uploadthing/server";
 
 const f = createUploadthing();
 
@@ -47,8 +52,7 @@ function describeTokenForLogs(token: string) {
       tokenShape: "jwt",
       issuer: typeof decoded.iss === "string" ? decoded.iss : null,
       authorisedParty: typeof decoded.azp === "string" ? decoded.azp : null,
-      expired:
-        typeof decoded.exp === "number" ? decoded.exp * 1000 < Date.now() : null,
+      expired: typeof decoded.exp === "number" ? decoded.exp * 1000 < Date.now() : null,
       hasSubject: typeof decoded.sub === "string",
     };
   } catch {
@@ -95,8 +99,7 @@ export const uploadRouter = {
           subject: null,
           errors: [
             {
-              message:
-                error instanceof Error ? error.message : "Token verification failed",
+              message: error instanceof Error ? error.message : "Token verification failed",
             },
           ],
         };
@@ -105,11 +108,7 @@ export const uploadRouter = {
       if (verified.errors?.length || !verified.subject) {
         const details =
           verified.errors?.map((error) => error.message).join("; ") ?? "Missing verified subject";
-        console.error(
-          "Upload authorisation failed",
-          details,
-          describeTokenForLogs(token),
-        );
+        console.error("Upload authorisation failed", details, describeTokenForLogs(token));
         throw new UploadThingError(
           process.env.NODE_ENV === "production"
             ? "Invalid upload authorisation"

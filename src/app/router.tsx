@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "@tanstack/react-router";
 import { AuthGate } from "@/components/auth/AuthGate";
+import { ChildRouteGate } from "@/components/auth/ChildRouteGate";
 import { ParentRouteGate } from "@/components/auth/ParentRouteGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SignInPage } from "@/routes/sign-in";
@@ -72,11 +73,13 @@ const parentRoute = createRoute({
 const childRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/child",
-  component: () => (
-    <AuthGate>
-      <Outlet />
-    </AuthGate>
-  ),
+  component: () => <Outlet />,
+});
+
+const childSessionRoute = createRoute({
+  getParentRoute: () => childRoute,
+  id: "child-session",
+  component: ChildRouteGate,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -123,21 +126,23 @@ const routeTree = rootRoute.addChildren([
       path: "/unlock",
       component: ChildUnlockPage,
     }),
-    createRoute({
-      getParentRoute: () => childRoute,
-      path: "/parent-unlock",
-      component: ChildParentUnlockPage,
-    }),
-    createRoute({
-      getParentRoute: () => childRoute,
-      path: "/today",
-      component: ChildTodayPage,
-    }),
-    createRoute({
-      getParentRoute: () => childRoute,
-      path: "/routine/$routineInstanceId",
-      component: ChildRoutinePage,
-    }),
+    childSessionRoute.addChildren([
+      createRoute({
+        getParentRoute: () => childSessionRoute,
+        path: "/parent-unlock",
+        component: ChildParentUnlockPage,
+      }),
+      createRoute({
+        getParentRoute: () => childSessionRoute,
+        path: "/today",
+        component: ChildTodayPage,
+      }),
+      createRoute({
+        getParentRoute: () => childSessionRoute,
+        path: "/routine/$routineInstanceId",
+        component: ChildRoutinePage,
+      }),
+    ]),
   ]),
 ]);
 

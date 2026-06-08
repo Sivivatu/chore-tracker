@@ -12,12 +12,16 @@ export function formatBritishDateLabel(dateKey: string, referenceDateKey?: strin
 
   const includeYear = Boolean(referenceDateKey && year !== referenceDateKey.slice(0, 4));
   const date = new Date(`${dateKey}T12:00:00.000Z`);
-  const label = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
+  const weekday = new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     timeZone: "UTC",
   }).format(date);
+  const dayMonth = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
+  const label = `${weekday} ${dayMonth}`;
 
   return includeYear ? `${label} ${year}` : label;
 }

@@ -2,7 +2,7 @@ import { Image, Pencil, UploadCloud } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +14,6 @@ import {
   isRewardIconKey,
   rewardIcons,
   RewardVisual,
-  type RewardIconKey,
   type RewardVisualValue,
 } from "@/lib/rewardVisuals";
 import { useUploadThing } from "@/lib/uploadthing";
@@ -50,7 +49,7 @@ const emptyForm: RewardForm = {
 function visualFromReward(reward: {
   _id: Id<"rewards">;
   title: string;
-  visualType: "icon" | "upload";
+  visualType?: "icon" | "upload";
   iconKey?: string;
   imageUrl?: string;
   uploadThingKey?: string;
@@ -72,9 +71,10 @@ function visualFromReward(reward: {
 
   return {
     type: "icon",
-    iconKey: reward.iconKey && isRewardIconKey(reward.iconKey)
-      ? reward.iconKey
-      : getDeterministicRewardIconKey(`${reward._id}:${reward.title}`),
+    iconKey:
+      reward.iconKey && isRewardIconKey(reward.iconKey)
+        ? reward.iconKey
+        : getDeterministicRewardIconKey(`${reward._id}:${reward.title}`),
   };
 }
 
@@ -91,9 +91,7 @@ function RewardImageUpload({
 
   if (!hasClerkConfig()) {
     return (
-      <p className="text-sm font-semibold text-ink/60">
-        Configure Clerk to upload reward images.
-      </p>
+      <p className="text-sm font-semibold text-ink/60">Configure Clerk to upload reward images.</p>
     );
   }
 
@@ -189,8 +187,7 @@ function AuthenticatedRewardImageUpload({
       return token ? { authorization: `Bearer ${token}` } : new Headers();
     },
     onUploadError: (error) => {
-      const uploadThingFallback =
-        "Something went wrong. Please report this to UploadThing.";
+      const uploadThingFallback = "Something went wrong. Please report this to UploadThing.";
       onError(
         error.message === uploadThingFallback
           ? "UploadThing rejected the upload before the reward was saved. Check the server log for the UploadThing route error."
@@ -290,18 +287,19 @@ export function ParentRewardsPage() {
     context?.household && context.parent.householdId === context.household._id
       ? context.household._id
       : null;
-  const rewardOptions = useQuery(
+  const rewardsPage = usePaginatedQuery(
     api.rewards.list,
     activeHouseholdId ? { householdId: activeHouseholdId } : "skip",
+    { initialNumItems: 100 },
   );
   const createReward = useMutation(api.rewards.create);
   const updateReward = useMutation(api.rewards.update);
   const sortedRewards = useMemo(
     () =>
-      (rewardOptions ?? [])
+      rewardsPage.results
         .slice()
         .sort((first, second) => Number(second.active) - Number(first.active)),
-    [rewardOptions],
+    [rewardsPage.results],
   );
 
   function resetMessages() {
@@ -359,17 +357,13 @@ export function ParentRewardsPage() {
     <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[0.8fr_1fr]">
       <Card>
         <p className="text-sm font-black uppercase text-teal">Rewards</p>
-        <h1 className="mt-2 text-4xl font-black">
-          {context?.child?.pointsBalance ?? 0} points
-        </h1>
+        <h1 className="mt-2 text-4xl font-black">{context?.child?.pointsBalance ?? 0} points</h1>
         <p className="mt-2 text-sm font-semibold text-ink/60">
           Live balance for {context?.child?.name ?? "the child profile"}.
         </p>
 
         <form noValidate onSubmit={saveReward} className="mt-6 rounded-md bg-paper p-4">
-          <p className="text-base font-black">
-            {form.rewardId ? "Edit reward" : "New reward"}
-          </p>
+          <p className="text-base font-black">{form.rewardId ? "Edit reward" : "New reward"}</p>
           <label htmlFor="reward-title" className="mt-4 block text-sm font-bold">
             Reward title
           </label>
@@ -381,9 +375,11 @@ export function ParentRewardsPage() {
               resetMessages();
             }}
             className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-base font-bold"
-            aria-describedby={[error ? "reward-error" : "", statusMessage ? "reward-status" : ""]
-              .filter(Boolean)
-              .join(" ") || undefined}
+            aria-describedby={
+              [error ? "reward-error" : "", statusMessage ? "reward-status" : ""]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
           />
 
           <label htmlFor="reward-points-cost" className="mt-4 block text-sm font-bold">
@@ -419,7 +415,11 @@ export function ParentRewardsPage() {
             <p className="text-sm font-bold">Reward visual</p>
             <div className="mt-3 flex items-center gap-4">
               {form.visual ? (
-                <RewardVisual visual={form.visual} title={form.title || "Reward"} className="h-16" />
+                <RewardVisual
+                  visual={form.visual}
+                  title={form.title || "Reward"}
+                  className="h-16"
+                />
               ) : (
                 <div
                   className="grid aspect-square h-16 place-items-center rounded-md border border-dashed border-ink/20 bg-white text-ink/40"
@@ -505,7 +505,11 @@ export function ParentRewardsPage() {
         {sortedRewards.map((reward) => (
           <Card key={reward._id}>
             <div className="flex items-start justify-between gap-4">
-              <RewardVisual visual={visualFromReward(reward)} title={reward.title} className="h-16 shrink-0" />
+              <RewardVisual
+                visual={visualFromReward(reward)}
+                title={reward.title}
+                className="h-16 shrink-0"
+              />
               <Button
                 type="button"
                 variant="quiet"
@@ -526,9 +530,7 @@ export function ParentRewardsPage() {
               </Button>
             </div>
             <h2 className="mt-4 text-xl font-black">{reward.title}</h2>
-            <p className="mt-2 text-sm font-semibold text-ink/60">
-              {reward.pointsCost} points
-            </p>
+            <p className="mt-2 text-sm font-semibold text-ink/60">{reward.pointsCost} points</p>
             <p className="mt-3 text-sm font-bold text-ink/60">
               {reward.active ? "Active" : "Inactive"}
             </p>
@@ -540,6 +542,11 @@ export function ParentRewardsPage() {
             <p className="font-black">No rewards yet.</p>
             <p className="mt-2 text-sm text-ink/60">Create a reward to show it here.</p>
           </Card>
+        ) : null}
+        {rewardsPage.status === "CanLoadMore" ? (
+          <Button type="button" variant="secondary" onClick={() => rewardsPage.loadMore(50)}>
+            Load more rewards
+          </Button>
         ) : null}
       </div>
     </section>

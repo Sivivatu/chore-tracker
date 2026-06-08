@@ -3,10 +3,12 @@ import { formatBritishDateLabel, getRecentDateKeys, isWithinPause, toDateKey } f
 import { getApprovedPoints } from "./points";
 
 export function getCompletionPercentage(instances: DailyRoutineInstance[]): number {
-  const actionable = instances.filter((instance) => instance.status !== "paused");
-  if (actionable.length === 0) return 0;
-  const complete = actionable.filter((instance) => instance.status === "approved").length;
-  return Math.round((complete / actionable.length) * 100);
+  const completed = instances.filter((instance) =>
+    ["approved", "submitted", "rejected"].includes(instance.status),
+  );
+  if (completed.length === 0) return 0;
+  const approved = completed.filter((instance) => instance.status === "approved").length;
+  return Math.round((approved / completed.length) * 100);
 }
 
 export function getApprovalQueue(instances: DailyRoutineInstance[]): DailyRoutineInstance[] {

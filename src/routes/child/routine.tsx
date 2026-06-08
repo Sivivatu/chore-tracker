@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { RoutineStepRow } from "@/components/child/RoutineStepRow";
 import { Button } from "@/components/ui/Button";
+import { readChildSession } from "@/lib/child-session";
 
 export function ChildRoutinePage() {
   const { routineInstanceId } = useParams({ strict: false }) as { routineInstanceId?: string };
@@ -44,11 +45,16 @@ export function ChildRoutinePage() {
   }
 
   async function submit() {
-    if (!context?.household || !instance) return;
+    const childSession = readChildSession();
+    if (!context?.household || !instance || !childSession) return;
+
     await submitRoutine({
       householdId: context.household._id,
+      childId: childSession.childId as Id<"children">,
       routineInstanceId: instance._id,
+      completedStepIds: Array.from(checkedSteps) as Id<"stepInstances">[],
     });
+    setToggledStepIds(new Set());
   }
 
   if (instance === undefined) {
@@ -56,7 +62,11 @@ export function ChildRoutinePage() {
   }
 
   if (instance === null) {
-    return <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">Routine not found.</section>;
+    return (
+      <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">
+        Routine not found.
+      </section>
+    );
   }
 
   return (

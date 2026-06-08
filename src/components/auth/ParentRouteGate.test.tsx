@@ -39,8 +39,8 @@ describe("ParentRouteGate", () => {
 
     render(<ParentRouteGate />);
 
-    expect(screen.getByTestId("navigate")).toHaveTextContent("/child/parent-unlock");
     await waitFor(() => {
+      expect(screen.getByTestId("navigate")).toHaveTextContent("/child/parent-unlock");
       expect(readParentReturnPath()).toBe("/parent/routines?tab=templates");
     });
 

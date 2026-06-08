@@ -54,7 +54,10 @@ export function AppLayout({ children }: PropsWithChildren) {
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <Link to={childModeActive ? "/child/today" : "/parent/dashboard"} className="flex items-center gap-3">
+          <Link
+            to={childModeActive ? "/child/today" : "/parent/dashboard"}
+            className="flex items-center gap-3"
+          >
             <span className="grid h-10 w-10 place-items-center rounded-md bg-sun text-lg font-black text-ink">
               CT
             </span>
@@ -74,8 +77,12 @@ export function AppLayout({ children }: PropsWithChildren) {
               aria-controls="mobile-main-navigation"
               onClick={() => setMobileMenuOpen((open) => !open)}
             >
-              {mobileMenuOpen ? <X aria-hidden className="h-4 w-4" /> : <Menu aria-hidden className="h-4 w-4" />}
-              Menu
+              {mobileMenuOpen ? (
+                <X aria-hidden className="h-4 w-4" />
+              ) : (
+                <Menu aria-hidden className="h-4 w-4" />
+              )}
+              {mobileMenuOpen ? "Close" : "Menu"}
             </button>
             <div className="hidden md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
               <nav className="flex flex-wrap gap-1" aria-label="Main navigation">
@@ -130,7 +137,10 @@ export function AppLayout({ children }: PropsWithChildren) {
 
           {mobileMenuOpen ? (
             <div ref={mobileMenuPanelRef} className="w-full md:hidden" id="mobile-main-navigation">
-              <nav className="grid gap-2 rounded-md border border-ink/10 bg-white p-2" aria-label="Main navigation">
+              <nav
+                className="grid gap-2 rounded-md border border-ink/10 bg-white p-2"
+                aria-label="Main navigation"
+              >
                 {childModeActive ? (
                   <>
                     <Link

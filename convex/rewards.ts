@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { assertHouseholdAccess } from "./security";
 
@@ -20,15 +21,47 @@ function validateRewardInput(args: { title: string; pointsCost: number }) {
   if (args.pointsCost < 0) throw new Error("Reward points cost cannot be negative");
 }
 
-function visualFields(visual: {
-  type: "icon";
-  iconKey: string;
-} | {
-  type: "upload";
-  imageUrl: string;
-  uploadThingKey: string;
-  imageName: string;
-}) {
+function rewardWithVisualDefaults<
+  Reward extends {
+    visualType?: "icon" | "upload";
+    iconKey?: string;
+    imageUrl?: string;
+    uploadThingKey?: string;
+    imageName?: string;
+  },
+>(reward: Reward) {
+  if (
+    reward.visualType === "upload" &&
+    reward.imageUrl &&
+    reward.uploadThingKey &&
+    reward.imageName
+  ) {
+    return reward;
+  }
+
+  return {
+    ...reward,
+    visualType: "icon" as const,
+    iconKey: reward.iconKey ?? "treat",
+    imageUrl: undefined,
+    uploadThingKey: undefined,
+    imageName: undefined,
+  };
+}
+
+function visualFields(
+  visual:
+    | {
+        type: "icon";
+        iconKey: string;
+      }
+    | {
+        type: "upload";
+        imageUrl: string;
+        uploadThingKey: string;
+        imageName: string;
+      },
+) {
   if (visual.type === "icon") {
     if (!visual.iconKey.trim()) throw new Error("Reward icon is required");
     return {
@@ -54,13 +87,18 @@ function visualFields(visual: {
 }
 
 export const list = query({
-  args: { householdId: v.id("households") },
+  args: { householdId: v.id("households"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
-    return await ctx.db
+    const page = await ctx.db
       .query("rewards")
       .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
-      .take(100);
+      .paginate(args.paginationOpts);
+
+    return {
+      ...page,
+      page: page.page.map(rewardWithVisualDefaults),
+    };
   },
 });
 

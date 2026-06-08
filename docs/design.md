@@ -1,4 +1,4 @@
----
+```yaml
 version: "alpha"
 name: "Chore Routine App"
 description: "A child-friendly routine tracker design system based on the local My Morning Routine reference image, with a calmer parent dashboard style."
@@ -84,7 +84,7 @@ components:
     textColor: "{colors.secondary}"
     rounded: "{rounded.md}"
     padding: "16px"
----
+```
 
 ## Overview
 
@@ -105,7 +105,7 @@ Core design principles:
 - Mobile and tablet first
 - Calm, structured parent management surfaces
 
-## Colors
+## Colours
 
 The morning routine reference uses a white background, dark blue title text, black step labels, and a repeating set of bright row accents. The child tracker should use these accents for rows, number badges, progress states, and illustration framing.
 

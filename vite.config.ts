@@ -47,7 +47,7 @@ function uploadThingDevApiPlugin(): Plugin {
           }
         } catch (error) {
           server.config.logger.error(
-            error instanceof Error ? error.stack ?? error.message : String(error),
+            error instanceof Error ? (error.stack ?? error.message) : String(error),
           );
           response.statusCode = 500;
           response.setHeader("content-type", "application/json");

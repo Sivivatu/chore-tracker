@@ -39,9 +39,13 @@ const convexState = vi.hoisted(() => ({
 vi.mock("convex/react", () => ({
   useMutation: (mutation: { _name?: string }) =>
     mutation._name?.includes("update") ? convexState.updateReward : convexState.createReward,
+  usePaginatedQuery: () => ({
+    results: convexState.rewards,
+    status: "Exhausted",
+    loadMore: vi.fn(),
+  }),
   useQuery: (query: { _name?: string }) => {
     if (query._name?.includes("currentContext")) return convexState.context;
-    if (query._name?.includes("rewards.list")) return convexState.rewards;
     return undefined;
   },
 }));

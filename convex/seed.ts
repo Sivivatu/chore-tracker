@@ -2,6 +2,7 @@ import { mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { hashPin } from "./pins";
 
 type SeedStep = {
   title: string;
@@ -110,8 +111,8 @@ async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
   const householdId = await ctx.db.insert("households", {
     name: "The Parker Household",
     createdAt: now,
-    parentLockPinHash: "2468",
   });
+  await ctx.db.patch(householdId, { parentLockPinHash: await hashPin("2468", householdId) });
   const parentId = await ctx.db.insert("parents", {
     householdId,
     clerkUserId,
@@ -120,7 +121,7 @@ async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
   const childId = await ctx.db.insert("children", {
     householdId,
     name: "Maya",
-    pinHash: "1234",
+    pinHash: await hashPin("1234", householdId),
     avatarColour: "#ffcf5a",
     pointsBalance: 42,
   });
@@ -341,6 +342,9 @@ export const e2eReset = mutation({
   handler: async (ctx, args) => {
     if (process.env.E2E_AUTH_BYPASS !== "true") {
       throw new Error("E2E reset is only available when E2E_AUTH_BYPASS is enabled");
+    }
+    if (!process.env.E2E_CLERK_USER_ID) {
+      throw new Error("E2E reset requires E2E_CLERK_USER_ID");
     }
     if (args.clerkUserId !== process.env.E2E_CLERK_USER_ID) {
       throw new Error("E2E reset can only seed the configured e2e parent");

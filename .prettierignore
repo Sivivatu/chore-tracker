@@ -1,4 +1,5 @@
 node_modules
+.agents
 dist
 build
 coverage
@@ -6,6 +7,7 @@ playwright-report
 test-results
 .react-router
 .convex
+convex/_generated
 pnpm-lock.yaml
 PRD.md
 chore_app_docs.zip

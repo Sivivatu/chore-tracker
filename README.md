@@ -23,7 +23,7 @@ pnpm dev
 
 The local app runs at `http://localhost:5173`.
 
-Populate `.env.local` with Clerk and Convex values before connecting to real services. The checked-in demo UI uses local seed data so the interface and tests can run before external projects are configured.
+Populate `.env.local` with Clerk and Convex values before connecting to real services. Blank `VITE_CONVEX_URL` values fall back to the local placeholder URL in development, so copying `.env.example` before creating a Convex deployment will not break the Vite dev server.
 
 ## Scripts
 

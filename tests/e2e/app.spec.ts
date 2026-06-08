@@ -80,19 +80,27 @@ test("parent can create a new routine", async ({ page }) => {
   await page.goto("/parent/routines");
   await expect(page.getByRole("heading", { name: "Templates and chore steps" })).toBeVisible();
 
-  await page.getByRole("button", { name: /^create routine$/i }).first().click();
+  await page
+    .getByRole("button", { name: /^create routine$/i })
+    .first()
+    .click();
   await page.getByLabel(/routine name/i).fill("Weekend Reset Routine");
   await page.getByLabel(/^Title$/i).fill("Sort Pokemon cards");
   await page.getByLabel(/illustration key/i).fill("cards");
   await page.getByLabel(/description/i).fill("Put the cards back into the storage box.");
   await page.getByLabel(/points/i).fill("7");
-  await page.getByRole("button", { name: /^create routine$/i }).last().click();
+  await page
+    .getByRole("button", { name: /^create routine$/i })
+    .last()
+    .click();
 
   await expect(page.getByText("Weekend Reset Routine").first()).toBeVisible();
   await expect(page.getByText(/Sort Pokemon cards/).first()).toBeVisible();
 });
 
-test("parent can create and customise reward visuals with uploaded images and SVG icons", async ({ page }) => {
+test("parent can create and customise reward visuals with uploaded images and SVG icons", async ({
+  page,
+}) => {
   await page.goto("/parent/rewards");
   await expect(page.getByRole("heading", { name: /42 points/i })).toBeVisible();
   await expect(page.getByText("Family film night")).toBeVisible();

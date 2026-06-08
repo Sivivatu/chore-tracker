@@ -12,7 +12,8 @@ function readEnvFile(fileName: string) {
       if (!trimmed || trimmed.startsWith("#")) continue;
       const [key, ...valueParts] = trimmed.split("=");
       if (!key || valueParts.length === 0) continue;
-      values[key.trim()] = valueParts.join("=").trim();
+      const value = valueParts.join("=").trim();
+      values[key.trim()] = value.replace(/^(['"])(.*)\1$/, "$2");
     }
   } catch {
     return values;
@@ -22,9 +23,13 @@ function readEnvFile(fileName: string) {
 }
 
 export function getE2EEnv() {
-  const localEnv = readEnvFile(".env.local");
-  const e2eEnv = readEnvFile(".env.e2e");
-  const env = { ...localEnv, ...e2eEnv, ...process.env };
+  const env = {
+    ...readEnvFile(".env"),
+    ...readEnvFile(".env.local"),
+    ...readEnvFile(".env.e2e"),
+    ...readEnvFile(".env.e2e.local"),
+    ...process.env,
+  };
 
   return {
     authBypass: env.VITE_E2E_AUTH_BYPASS,
