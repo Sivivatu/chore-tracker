@@ -183,12 +183,16 @@ async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
     title: "Family film night",
     pointsCost: 50,
     active: true,
+    visualType: "icon",
+    iconKey: "film",
   });
   await ctx.db.insert("rewards", {
     householdId,
     title: "Pick the park",
     pointsCost: 35,
     active: true,
+    visualType: "icon",
+    iconKey: "park",
   });
   await ctx.db.insert("holidayPauses", {
     householdId,

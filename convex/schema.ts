@@ -118,6 +118,11 @@ export default defineSchema({
     title: v.string(),
     pointsCost: v.number(),
     active: v.boolean(),
+    visualType: v.union(v.literal("icon"), v.literal("upload")),
+    iconKey: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    uploadThingKey: v.optional(v.string()),
+    imageName: v.optional(v.string()),
   }).index("by_household", ["householdId"]),
   reminders: defineTable({
     householdId: v.id("households"),

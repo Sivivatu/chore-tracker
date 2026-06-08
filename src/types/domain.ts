@@ -93,6 +93,11 @@ export type RewardOption = {
   title: string;
   pointsCost: number;
   active: boolean;
+  visualType: "icon" | "upload";
+  iconKey?: string;
+  imageUrl?: string;
+  uploadThingKey?: string;
+  imageName?: string;
 };
 
 export type HolidayPause = {
