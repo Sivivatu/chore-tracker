@@ -8,7 +8,7 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL ?? "https://placeholder.convex
 const convex = new ConvexReactClient(convexUrl);
 
 export function isE2EAuthBypass() {
-  return import.meta.env.VITE_E2E_AUTH_BYPASS === "true";
+  return import.meta.env.MODE === "e2e" || import.meta.env.VITE_E2E_AUTH_BYPASS === "true";
 }
 
 export function hasClerkConfig() {
