@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm exec vite --host 0.0.0.0 --mode e2e",
     url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
     timeout: 120_000,
   },
   projects: [

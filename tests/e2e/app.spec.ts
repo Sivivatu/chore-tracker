@@ -25,6 +25,8 @@ test("child mode locks parent routine editing until parent PIN is entered", asyn
   await expect(page.getByRole("heading", { name: /unlock parent pages/i })).toBeVisible();
   await page.getByLabel(/enter parent pin/i).fill("2468");
   await page.getByRole("button", { name: /unlock parent pages/i }).click();
+  await page.waitForFunction(() => localStorage.getItem("chore-tracker-child-session") === null);
+  await page.goto("/parent/routines");
 
   await expect(page.getByRole("heading", { name: "Templates and chore steps" })).toBeVisible();
   await expect(page.getByRole("button", { name: /edit routine/i }).first()).toBeVisible();
@@ -72,4 +74,54 @@ test("parent can edit a demo routine and keep edit history", async ({ page }) =>
 
   await expect(page.getByText("School Morning Routine").first()).toBeVisible();
   await expect(page.getByText(/My Morning Routine archived/)).toBeVisible();
+});
+
+test("parent can create a new routine", async ({ page }) => {
+  await page.goto("/parent/routines");
+  await expect(page.getByRole("heading", { name: "Templates and chore steps" })).toBeVisible();
+
+  await page.getByRole("button", { name: /^create routine$/i }).first().click();
+  await page.getByLabel(/routine name/i).fill("Weekend Reset Routine");
+  await page.getByLabel(/^Title$/i).fill("Sort Pokemon cards");
+  await page.getByLabel(/illustration key/i).fill("cards");
+  await page.getByLabel(/description/i).fill("Put the cards back into the storage box.");
+  await page.getByLabel(/points/i).fill("7");
+  await page.getByRole("button", { name: /^create routine$/i }).last().click();
+
+  await expect(page.getByText("Weekend Reset Routine").first()).toBeVisible();
+  await expect(page.getByText(/Sort Pokemon cards/).first()).toBeVisible();
+});
+
+test("parent can create and customise reward visuals with uploaded images and SVG icons", async ({ page }) => {
+  await page.goto("/parent/rewards");
+  await expect(page.getByRole("heading", { name: /42 points/i })).toBeVisible();
+  await expect(page.getByText("Family film night")).toBeVisible();
+
+  await page.getByLabel(/reward title/i).fill("Pizza night choice");
+  await page.getByLabel(/points cost/i).fill("25");
+  await page
+    .getByLabel(/upload reward image file/i)
+    .setInputFiles("docs/img/me04-pokemon-center-elite-trainer-box-169-en.png");
+  await expect(page.getByText("Reward image uploaded.")).toBeVisible();
+  await page.getByRole("button", { name: /create reward/i }).click();
+
+  await expect(page.getByText("Pizza night choice").first()).toBeVisible();
+  await expect(page.getByText("25 points").first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "Pizza night choice" }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /edit reward pizza night choice/i }).click();
+  await page.getByRole("button", { name: /choose music reward icon/i }).click();
+  await page.getByRole("button", { name: /save changes/i }).click();
+
+  await expect(page.getByText("Reward saved.")).toBeVisible();
+  await expect(page.getByTestId("reward-icon-music")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("Pizza night choice").first()).toBeVisible();
+  await expect(page.getByText("25 points").first()).toBeVisible();
+  await expect(page.getByText("Active").first()).toBeVisible();
+  await expect(page.getByTestId("reward-icon-music")).toBeVisible();
+
+  await page.getByRole("button", { name: /create reward/i }).click();
+  await expect(page.getByText("Reward title is required.")).toBeVisible();
 });
