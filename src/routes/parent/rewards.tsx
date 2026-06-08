@@ -140,6 +140,11 @@ function E2ERewardImageUpload({
     });
   }
 
+  function handleDrop(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    void uploadFiles(event.dataTransfer.files);
+  }
+
   return (
     <div>
       <input
@@ -156,6 +161,9 @@ function E2ERewardImageUpload({
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
+        onDragEnter={(event) => event.preventDefault()}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
         className="grid w-full place-items-center rounded-lg border border-dashed border-ink/20 bg-paper/60 px-4 py-5 text-center transition hover:border-teal"
       >
         <span className="grid h-12 w-12 place-items-center rounded-md bg-white text-teal shadow-sm">

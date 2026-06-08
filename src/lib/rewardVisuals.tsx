@@ -52,7 +52,7 @@ const rewardIconMap = Object.fromEntries(rewardIcons.map((icon) => [icon.key, ic
 >;
 
 export function isRewardIconKey(value: string): value is RewardIconKey {
-  return value in rewardIconMap;
+  return Object.prototype.hasOwnProperty.call(rewardIconMap, value);
 }
 
 export function getRandomRewardIconKey() {
