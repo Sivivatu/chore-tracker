@@ -1,10 +1,18 @@
 .DS_Store
 .env
+.env.*
+!.env.example
 /node_modules/
 
 # React Router
 /.react-router/
 /build/
+/dist/
+
+# Test and build artefacts
+/coverage/
+/playwright-report/
+/test-results/
 
 chore_app_docs.zip
 .vercel

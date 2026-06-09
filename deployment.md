@@ -93,6 +93,26 @@ These steps should be completed manually in the local dev container before askin
 6. Add `.env.example` to source control.
 7. Add `.gitignore` entries for local env files and generated artefacts.
 
+### Graphite merge queue optimisations
+
+Graphite Merge Queue Optimisations were reviewed for stacked PRs. Fast-forward
+merge, Parallel CI, and Batching all require Graphite Merge Queue, which is a
+paid Graphite feature and is deferred while the project remains on the free
+Hobby plan. Batching is also documented by Graphite as a private beta feature.
+
+No GitHub Actions workflow changes are required for these paid merge queue
+features on the free plan. The existing PR and push CI workflow remains the
+source of truth, including the current pnpm setup and Node dependency cache.
+
+Deferred paid setup:
+
+- Graphite Merge Queue setup.
+- Fast-forward merge for stacked PRs.
+- Parallel CI for multiple stacks.
+- Batching.
+- GitHub branch protection or ruleset changes that allow `graphite-app` to
+  bypass merge restrictions.
+
 ## Suggested Vercel settings
 
 - Framework preset: Vite
