@@ -4,7 +4,7 @@
 !.env.example
 /node_modules/
 
-# React Router
+# Build artefacts
 /.react-router/
 /build/
 /dist/
@@ -13,6 +13,7 @@
 /coverage/
 /playwright-report/
 /test-results/
+.convex/
 
 chore_app_docs.zip
 .vercel
