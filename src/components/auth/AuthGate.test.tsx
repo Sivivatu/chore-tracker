@@ -4,12 +4,14 @@ import { AuthGate } from "./AuthGate";
 
 const authState = vi.hoisted(() => ({
   hasConfig: true,
+  e2eBypass: false,
   isLoaded: true,
   isSignedIn: true,
 }));
 
 vi.mock("@/app/providers", () => ({
   hasClerkConfig: () => authState.hasConfig,
+  isE2EAuthBypass: () => authState.e2eBypass,
 }));
 
 vi.mock("@clerk/clerk-react", () => ({
@@ -26,6 +28,7 @@ vi.mock("@tanstack/react-router", () => ({
 describe("AuthGate", () => {
   beforeEach(() => {
     authState.hasConfig = true;
+    authState.e2eBypass = false;
     authState.isLoaded = true;
     authState.isSignedIn = true;
   });
@@ -77,5 +80,19 @@ describe("AuthGate", () => {
 
     expect(screen.getByText("Checking sign in...")).toBeInTheDocument();
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
+  });
+
+  it("renders protected content in e2e auth bypass mode", () => {
+    authState.e2eBypass = true;
+    authState.hasConfig = false;
+    authState.isSignedIn = false;
+
+    render(
+      <AuthGate>
+        <p>Protected dashboard</p>
+      </AuthGate>,
+    );
+
+    expect(screen.getByText("Protected dashboard")).toBeInTheDocument();
   });
 });
