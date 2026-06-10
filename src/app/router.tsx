@@ -5,6 +5,7 @@ import {
   createRouter,
   Navigate,
 } from "@tanstack/react-router";
+import { AuthGate } from "@/components/auth/AuthGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SignInPage } from "@/routes/sign-in";
 import { SignUpPage } from "@/routes/sign-up";
@@ -38,28 +39,50 @@ const signInRoute = createRoute({
   component: SignInPage,
 });
 
+const signInCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sign-in/$",
+  component: SignInPage,
+});
+
 const signUpRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sign-up",
   component: SignUpPage,
 });
 
+const signUpCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sign-up/$",
+  component: SignUpPage,
+});
+
 const parentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/parent",
-  component: Outlet,
+  component: () => (
+    <AuthGate>
+      <Outlet />
+    </AuthGate>
+  ),
 });
 
 const childRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/child",
-  component: Outlet,
+  component: () => (
+    <AuthGate>
+      <Outlet />
+    </AuthGate>
+  ),
 });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
+  signInCallbackRoute,
   signUpRoute,
+  signUpCallbackRoute,
   parentRoute.addChildren([
     createRoute({
       getParentRoute: () => parentRoute,

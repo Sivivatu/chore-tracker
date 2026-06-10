@@ -1,21 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useConvex, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/Button";
-import { child, household } from "@/data/seed";
-import { createChildSession, saveChildSession, verifyChildPin } from "@/lib/child-session";
+import { createChildSession, saveChildSession } from "@/lib/child-session";
 
 export function ChildUnlockPage() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const convex = useConvex();
+  const context = useQuery(api.households.currentContext);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!verifyChildPin(pin, child.pinHash)) {
+    if (!context?.household) return;
+
+    const unlocked = await convex.query(api.childMode.unlock, {
+      householdId: context.household._id,
+      pin,
+    });
+
+    if (!unlocked) {
       setError("That PIN did not work. Ask your parent to check it with you.");
       return;
     }
-    saveChildSession(createChildSession(child.id, household.id));
+
+    saveChildSession(createChildSession(unlocked.childId, unlocked.householdId));
     void navigate({ to: "/child/today" });
   }
 
@@ -26,7 +37,7 @@ export function ChildUnlockPage() {
         className="mx-auto max-w-md rounded-lg border-4 border-ink bg-white p-6 shadow-poster"
       >
         <p className="text-sm font-black uppercase text-coral">Child mode</p>
-        <h1 className="mt-2 text-4xl font-black">Hi {child.name}</h1>
+        <h1 className="mt-2 text-4xl font-black">Hi {context?.child?.name ?? "there"}</h1>
         <label htmlFor="pin" className="mt-6 block text-lg font-black">
           Enter your PIN
         </label>
@@ -44,7 +55,7 @@ export function ChildUnlockPage() {
             {error}
           </p>
         ) : null}
-        <Button className="mt-6 w-full" type="submit">
+        <Button className="mt-6 w-full" type="submit" disabled={!context?.household}>
           Unlock routines
         </Button>
       </form>

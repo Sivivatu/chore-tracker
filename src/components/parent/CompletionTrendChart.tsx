@@ -1,9 +1,22 @@
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { getCalendarSeries } from "@/lib/dashboard";
-import { holidayPauses, routineInstances } from "@/data/seed";
+import { demoRoutineDate } from "@/lib/demo-date";
 
 export function CompletionTrendChart() {
-  const data = getCalendarSeries(routineInstances, holidayPauses);
+  const context = useQuery(api.households.currentContext);
+  const routineInstances = useQuery(
+    api.routines.listTodayWithSteps,
+    context?.household ? { householdId: context.household._id, date: demoRoutineDate } : "skip",
+  );
+  const holidayPauses = useQuery(
+    api.holidayPauses.list,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+  const pauses = (holidayPauses ?? []).map((pause) => ({ id: pause._id, ...pause }));
+  const data = getCalendarSeries(routineInstances ?? [], pauses);
+
   return (
     <section
       className="h-72 rounded-lg border border-ink/10 bg-white p-5 shadow-panel"

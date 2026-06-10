@@ -1,16 +1,29 @@
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { CalendarCompletionView } from "@/components/parent/CalendarCompletionView";
 import { CompletionTrendChart } from "@/components/parent/CompletionTrendChart";
 import { DashboardMetricCard } from "@/components/parent/DashboardMetricCard";
-import { child, holidayPauses, routineInstances } from "@/data/seed";
 import { getDashboardSummary } from "@/lib/dashboard";
+import { demoRoutineDate } from "@/lib/demo-date";
 
 export function ParentDashboardPage() {
-  const summary = getDashboardSummary(routineInstances, holidayPauses);
+  const context = useQuery(api.households.currentContext);
+  const routineInstances = useQuery(
+    api.routines.listTodayWithSteps,
+    context?.household ? { householdId: context.household._id, date: demoRoutineDate } : "skip",
+  );
+  const holidayPauses = useQuery(
+    api.holidayPauses.list,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+  const pauses = (holidayPauses ?? []).map((pause) => ({ id: pause._id, ...pause }));
+  const summary = getDashboardSummary(routineInstances ?? [], pauses);
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex flex-col gap-2">
         <p className="text-sm font-black uppercase text-teal">Parent dashboard</p>
-        <h1 className="text-4xl font-black">Today for {child.name}</h1>
+        <h1 className="text-4xl font-black">Today for {context?.child?.name ?? "your child"}</h1>
         <p className="max-w-2xl text-ink/65">
           Review routine progress, approve submissions, and keep points tied to verified completion.
         </p>

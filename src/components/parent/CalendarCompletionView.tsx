@@ -1,8 +1,21 @@
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { getCalendarSeries } from "@/lib/dashboard";
-import { holidayPauses, routineInstances } from "@/data/seed";
+import { demoRoutineDate } from "@/lib/demo-date";
 
 export function CalendarCompletionView() {
-  const days = getCalendarSeries(routineInstances, holidayPauses);
+  const context = useQuery(api.households.currentContext);
+  const routineInstances = useQuery(
+    api.routines.listTodayWithSteps,
+    context?.household ? { householdId: context.household._id, date: demoRoutineDate } : "skip",
+  );
+  const holidayPauses = useQuery(
+    api.holidayPauses.list,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+  const pauses = (holidayPauses ?? []).map((pause) => ({ id: pause._id, ...pause }));
+  const days = getCalendarSeries(routineInstances ?? [], pauses);
+
   return (
     <section className="rounded-lg border border-ink/10 bg-white p-5 shadow-panel">
       <h2 className="text-lg font-black">Calendar view</h2>

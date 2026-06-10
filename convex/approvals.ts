@@ -10,7 +10,23 @@ export const queue = query({
       .query("routineInstances")
       .withIndex("by_household_date", (query) => query.eq("householdId", args.householdId))
       .collect();
-    return all.filter((instance) => instance.status === "submitted");
+    const submitted = all.filter((instance) => instance.status === "submitted");
+    return await Promise.all(
+      submitted.map(async (instance) => {
+        const steps = await ctx.db
+          .query("stepInstances")
+          .withIndex("by_routine_instance", (query) => query.eq("routineInstanceId", instance._id))
+          .collect();
+
+        return {
+          id: instance._id,
+          ...instance,
+          steps: steps
+            .map((step) => ({ id: step._id, ...step }))
+            .sort((a, b) => a.snapshotOrder - b.snapshotOrder),
+        };
+      }),
+    );
   },
 });
 

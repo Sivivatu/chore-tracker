@@ -1,5 +1,6 @@
-import { ClerkProvider } from "@clerk/clerk-react";
+import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import type { PropsWithChildren } from "react";
 
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -17,7 +18,9 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <ClerkProvider publishableKey={clerkKey}>
-      <ConvexProvider client={convex}>{children}</ConvexProvider>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        {children}
+      </ConvexProviderWithClerk>
     </ClerkProvider>
   );
 }

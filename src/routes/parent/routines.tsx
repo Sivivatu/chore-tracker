@@ -1,8 +1,15 @@
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { routineTemplates } from "@/data/seed";
 
 export function ParentRoutinesPage() {
+  const context = useQuery(api.households.currentContext);
+  const routineTemplates = useQuery(
+    api.routines.listTemplatesWithSteps,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -13,7 +20,7 @@ export function ParentRoutinesPage() {
         <Button>Create routine</Button>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        {routineTemplates.map((routine) => (
+        {(routineTemplates ?? []).map((routine) => (
           <Card key={routine.id}>
             <div className="flex items-start justify-between gap-4">
               <div>
