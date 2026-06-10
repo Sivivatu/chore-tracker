@@ -40,6 +40,34 @@ export default defineSchema({
     schedule: v.array(v.string()),
     createdByParentId: v.id("parents"),
   }).index("by_household", ["householdId"]),
+  routineTemplateVersions: defineTable({
+    householdId: v.id("households"),
+    routineTemplateId: v.id("routineTemplates"),
+    archivedByParentId: v.id("parents"),
+    archivedAt: v.string(),
+    snapshotName: v.string(),
+    snapshotType: v.union(
+      v.literal("morning"),
+      v.literal("evening"),
+      v.literal("weekend"),
+      v.literal("custom"),
+    ),
+    snapshotActive: v.boolean(),
+    snapshotSchedule: v.array(v.string()),
+    snapshotSteps: v.array(
+      v.object({
+        title: v.string(),
+        description: v.string(),
+        order: v.number(),
+        points: v.number(),
+        required: v.boolean(),
+        illustrationKey: v.string(),
+        accent: v.string(),
+      }),
+    ),
+  })
+    .index("by_routine", ["routineTemplateId"])
+    .index("by_household", ["householdId"]),
   choreSteps: defineTable({
     householdId: v.id("households"),
     routineTemplateId: v.id("routineTemplates"),
