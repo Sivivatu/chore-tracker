@@ -1,0 +1,25 @@
+import { query } from "./_generated/server";
+import { v } from "convex/values";
+import { assertHouseholdAccess } from "./security";
+
+export const summary = query({
+  args: { householdId: v.id("households"), date: v.string() },
+  handler: async (ctx, args) => {
+    await assertHouseholdAccess(ctx, args.householdId);
+    const instances = await ctx.db
+      .query("routineInstances")
+      .withIndex("by_household_date", (query) =>
+        query.eq("householdId", args.householdId).eq("date", args.date),
+      )
+      .collect();
+    const submittedCount = instances.filter((instance) => instance.status === "submitted").length;
+    const approvedCount = instances.filter((instance) => instance.status === "approved").length;
+    const actionableCount = instances.filter((instance) => instance.status !== "paused").length;
+    return {
+      submittedCount,
+      approvedCount,
+      completionPercentage:
+        actionableCount === 0 ? 0 : Math.round((approvedCount / actionableCount) * 100),
+    };
+  },
+});
