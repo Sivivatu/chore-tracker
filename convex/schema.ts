@@ -14,6 +14,7 @@ export default defineSchema({
   households: defineTable({
     name: v.string(),
     createdAt: v.string(),
+    parentLockPinHash: v.optional(v.string()),
   }),
   parents: defineTable({
     householdId: v.id("households"),

@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "@tanstack/react-router";
 import { AuthGate } from "@/components/auth/AuthGate";
+import { ParentRouteGate } from "@/components/auth/ParentRouteGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SignInPage } from "@/routes/sign-in";
 import { SignUpPage } from "@/routes/sign-up";
@@ -16,6 +17,7 @@ import { ParentRewardsPage } from "@/routes/parent/rewards";
 import { ParentPausesPage } from "@/routes/parent/pauses";
 import { ParentSettingsPage } from "@/routes/parent/settings";
 import { ChildUnlockPage } from "@/routes/child/unlock";
+import { ChildParentUnlockPage } from "@/routes/child/parent-unlock";
 import { ChildTodayPage } from "@/routes/child/today";
 import { ChildRoutinePage } from "@/routes/child/routine";
 
@@ -62,7 +64,7 @@ const parentRoute = createRoute({
   path: "/parent",
   component: () => (
     <AuthGate>
-      <Outlet />
+      <ParentRouteGate />
     </AuthGate>
   ),
 });
@@ -120,6 +122,11 @@ const routeTree = rootRoute.addChildren([
       getParentRoute: () => childRoute,
       path: "/unlock",
       component: ChildUnlockPage,
+    }),
+    createRoute({
+      getParentRoute: () => childRoute,
+      path: "/parent-unlock",
+      component: ChildParentUnlockPage,
     }),
     createRoute({
       getParentRoute: () => childRoute,
