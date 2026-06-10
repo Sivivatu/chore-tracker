@@ -35,6 +35,7 @@ export const child: ChildProfile = {
   name: "Maya",
   pinHash: "1234",
   avatarColour: "#ffcf5a",
+  avatarPreset: "star",
   pointsBalance: 42,
 };
 

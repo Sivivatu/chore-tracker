@@ -26,6 +26,7 @@ export default defineSchema({
     name: v.string(),
     pinHash: v.string(),
     avatarColour: v.string(),
+    avatarPreset: v.optional(v.string()),
     pointsBalance: v.number(),
   })
     .index("by_household", ["householdId"])

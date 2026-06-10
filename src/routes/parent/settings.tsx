@@ -1,15 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { Heart, Rocket, Smile, Sparkles, Star } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { formatBritishDateTime } from "@/lib/dates";
+import type { Id } from "../../../convex/_generated/dataModel";
+
+const avatarColours = ["#ffcf5a", "#14b8a6", "#38bdf8", "#f97316", "#a855f7", "#ef4444"];
+const avatarPresets = [
+  { key: "star", label: "Star", icon: Star },
+  { key: "heart", label: "Heart", icon: Heart },
+  { key: "smile", label: "Smile", icon: Smile },
+  { key: "sparkles", label: "Sparkles", icon: Sparkles },
+  { key: "rocket", label: "Rocket", icon: Rocket },
+];
 
 export function ParentSettingsPage() {
   const [pin, setPin] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [error, setError] = useState("");
+  const [pinStatusMessage, setPinStatusMessage] = useState("");
+  const [pinError, setPinError] = useState("");
   const context = useQuery(api.households.currentContext);
+  const primaryChild = context?.child ?? context?.children?.at(0) ?? null;
   const parentLockStatus = useQuery(
     api.households.parentLockStatus,
     context?.household ? { householdId: context.household._id } : "skip",
@@ -22,21 +34,21 @@ export function ParentSettingsPage() {
 
   async function saveParentPin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    setStatusMessage("");
+    setPinError("");
+    setPinStatusMessage("");
     if (!context?.household) return;
 
     if (!/^\d{4,8}$/.test(pin.trim())) {
-      setError("Use a 4 to 8 digit parent PIN.");
+      setPinError("Use a 4 to 8 digit parent PIN.");
       return;
     }
 
     try {
       await setParentLockPin({ householdId: context.household._id, pin });
       setPin("");
-      setStatusMessage("Parent lock PIN saved.");
+      setPinStatusMessage("Parent lock PIN saved.");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Could not save parent lock PIN.");
+      setPinError(error instanceof Error ? error.message : "Could not save parent lock PIN.");
     }
   }
 
@@ -46,7 +58,21 @@ export function ParentSettingsPage() {
         <p className="text-sm font-black uppercase text-teal">Household</p>
         <h1 className="mt-2 text-3xl font-black">{context?.household.name ?? "Household"}</h1>
         <p className="mt-4 text-sm text-ink/60">Parent: {context?.parent.name ?? "Loading"}</p>
-        <p className="text-sm text-ink/60">Child profile: {context?.child?.name ?? "Loading"}</p>
+        <p className="text-sm text-ink/60">Child profile: {primaryChild?.name ?? "Loading"}</p>
+        {context?.household ? (
+          <HouseholdIdentityForm
+            key={context.household._id}
+            householdId={context.household._id}
+            initialName={context.household.name}
+          />
+        ) : null}
+        {context?.household && primaryChild ? (
+          <ChildIdentityForm
+            key={primaryChild._id}
+            householdId={context.household._id}
+            child={primaryChild}
+          />
+        ) : null}
         <form onSubmit={saveParentPin} className="mt-6 rounded-md bg-paper p-4">
           <p className="text-base font-black">Parent lock PIN</p>
           <p className="mt-1 text-sm text-ink/60">
@@ -64,24 +90,24 @@ export function ParentSettingsPage() {
             maxLength={8}
             onChange={(event) => {
               setPin(event.target.value);
-              setError("");
-              setStatusMessage("");
+              setPinError("");
+              setPinStatusMessage("");
             }}
             className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
             aria-describedby={
-              [error ? "parent-lock-error" : "", statusMessage ? "parent-lock-status" : ""]
+              [pinError ? "parent-lock-error" : "", pinStatusMessage ? "parent-lock-status" : ""]
                 .filter(Boolean)
                 .join(" ") || undefined
             }
           />
-          {error ? (
+          {pinError ? (
             <p id="parent-lock-error" className="mt-2 text-sm font-bold text-rose-700">
-              {error}
+              {pinError}
             </p>
           ) : null}
-          {statusMessage ? (
+          {pinStatusMessage ? (
             <p id="parent-lock-status" className="mt-2 text-sm font-bold text-teal">
-              {statusMessage}
+              {pinStatusMessage}
             </p>
           ) : null}
           <Button className="mt-4" type="submit" disabled={!context?.household || !pin}>
@@ -101,5 +127,229 @@ export function ParentSettingsPage() {
         </ol>
       </Card>
     </section>
+  );
+}
+
+function HouseholdIdentityForm({
+  householdId,
+  initialName,
+}: {
+  householdId: Id<"households">;
+  initialName: string;
+}) {
+  const [householdName, setHouseholdName] = useState(initialName);
+  const [householdStatusMessage, setHouseholdStatusMessage] = useState("");
+  const [householdError, setHouseholdError] = useState("");
+  const updateHouseholdIdentity = useMutation(api.households.updateHouseholdIdentity);
+
+  async function saveHouseholdIdentity(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setHouseholdError("");
+    setHouseholdStatusMessage("");
+
+    if (!householdName.trim()) {
+      setHouseholdError("Household name is required.");
+      return;
+    }
+
+    try {
+      await updateHouseholdIdentity({ householdId, name: householdName });
+      setHouseholdStatusMessage("Household identity saved.");
+    } catch (error) {
+      setHouseholdError(
+        error instanceof Error ? error.message : "Could not save household identity.",
+      );
+    }
+  }
+
+  return (
+    <form onSubmit={saveHouseholdIdentity} className="mt-6 rounded-md bg-paper p-4">
+      <p className="text-base font-black">Family identity</p>
+      <label htmlFor="household-name" className="mt-4 block text-sm font-bold">
+        Household name
+      </label>
+      <input
+        id="household-name"
+        value={householdName}
+        maxLength={80}
+        onChange={(event) => {
+          setHouseholdName(event.target.value);
+          setHouseholdError("");
+          setHouseholdStatusMessage("");
+        }}
+        className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+        aria-describedby={
+          [
+            householdError ? "household-identity-error" : "",
+            householdStatusMessage ? "household-identity-status" : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+      />
+      {householdError ? (
+        <p id="household-identity-error" className="mt-2 text-sm font-bold text-rose-700">
+          {householdError}
+        </p>
+      ) : null}
+      {householdStatusMessage ? (
+        <p id="household-identity-status" className="mt-2 text-sm font-bold text-teal">
+          {householdStatusMessage}
+        </p>
+      ) : null}
+      <Button className="mt-4" type="submit">
+        Save household
+      </Button>
+    </form>
+  );
+}
+
+function ChildIdentityForm({
+  householdId,
+  child,
+}: {
+  householdId: Id<"households">;
+  child: {
+    _id: Id<"children">;
+    name: string;
+    avatarColour: string;
+    avatarPreset?: string;
+  };
+}) {
+  const [childName, setChildName] = useState(child.name);
+  const [avatarColour, setAvatarColour] = useState(child.avatarColour);
+  const [avatarPreset, setAvatarPreset] = useState(child.avatarPreset ?? avatarPresets[0].key);
+  const [childStatusMessage, setChildStatusMessage] = useState("");
+  const [childError, setChildError] = useState("");
+  const updateChildIdentity = useMutation(api.households.updateChildIdentity);
+  const selectedAvatar = useMemo(
+    () => avatarPresets.find((preset) => preset.key === avatarPreset) ?? avatarPresets[0],
+    [avatarPreset],
+  );
+  const SelectedAvatarIcon = selectedAvatar.icon;
+
+  async function saveChildIdentity(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setChildError("");
+    setChildStatusMessage("");
+
+    if (!childName.trim()) {
+      setChildError("Child name is required.");
+      return;
+    }
+
+    try {
+      await updateChildIdentity({
+        householdId,
+        childId: child._id,
+        name: childName,
+        avatarColour,
+        avatarPreset,
+      });
+      setChildStatusMessage("Child profile saved.");
+    } catch (error) {
+      setChildError(error instanceof Error ? error.message : "Could not save child profile.");
+    }
+  }
+
+  return (
+    <form onSubmit={saveChildIdentity} className="mt-4 rounded-md bg-paper p-4">
+      <p className="text-base font-black">Child profile</p>
+      <div className="mt-4 flex items-center gap-3">
+        <span
+          className="grid h-14 w-14 place-items-center rounded-md text-white shadow-sm"
+          style={{ backgroundColor: avatarColour }}
+          aria-hidden
+        >
+          <SelectedAvatarIcon className="h-7 w-7" />
+        </span>
+        <div>
+          <p className="font-bold">{childName || "Child profile"}</p>
+          <p className="text-sm text-ink/60">{selectedAvatar.label} avatar</p>
+        </div>
+      </div>
+      <label htmlFor="child-name" className="mt-4 block text-sm font-bold">
+        Child name
+      </label>
+      <input
+        id="child-name"
+        value={childName}
+        maxLength={80}
+        onChange={(event) => {
+          setChildName(event.target.value);
+          setChildError("");
+          setChildStatusMessage("");
+        }}
+        className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+      />
+      <fieldset className="mt-4">
+        <legend className="text-sm font-bold">Avatar colour</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {avatarColours.map((colour) => (
+            <button
+              key={colour}
+              type="button"
+              className="h-10 w-10 rounded-md border-2 border-white shadow-sm outline outline-ink/15 focus:outline-ink"
+              style={{ backgroundColor: colour }}
+              aria-label={`Use avatar colour ${colour}`}
+              aria-pressed={avatarColour === colour}
+              onClick={() => {
+                setAvatarColour(colour);
+                setChildError("");
+                setChildStatusMessage("");
+              }}
+            />
+          ))}
+        </div>
+      </fieldset>
+      <label htmlFor="avatar-colour" className="mt-4 block text-sm font-bold">
+        Custom avatar colour
+      </label>
+      <input
+        id="avatar-colour"
+        value={avatarColour}
+        onChange={(event) => {
+          setAvatarColour(event.target.value);
+          setChildError("");
+          setChildStatusMessage("");
+        }}
+        className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+      />
+      <fieldset className="mt-4">
+        <legend className="text-sm font-bold">Avatar icon</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {avatarPresets.map((preset) => {
+            const Icon = preset.icon;
+            const selected = avatarPreset === preset.key;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                className={`grid h-11 w-11 place-items-center rounded-md border text-ink hover:bg-white ${
+                  selected ? "border-ink bg-white" : "border-ink/15 bg-transparent"
+                }`}
+                aria-label={`Use ${preset.label} avatar`}
+                aria-pressed={selected}
+                title={preset.label}
+                onClick={() => {
+                  setAvatarPreset(preset.key);
+                  setChildError("");
+                  setChildStatusMessage("");
+                }}
+              >
+                <Icon aria-hidden className="h-5 w-5" />
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+      {childError ? <p className="mt-2 text-sm font-bold text-rose-700">{childError}</p> : null}
+      {childStatusMessage ? (
+        <p className="mt-2 text-sm font-bold text-teal">{childStatusMessage}</p>
+      ) : null}
+      <Button className="mt-4" type="submit">
+        Save child profile
+      </Button>
+    </form>
   );
 }

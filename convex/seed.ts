@@ -104,12 +104,22 @@ const routines: SeedRoutine[] = [
   },
 ];
 
-async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
+function normaliseInitialHouseholdName(name: string | undefined) {
+  const trimmed = name?.trim();
+  if (!trimmed) return "The Parker Household";
+  return trimmed.slice(0, 80);
+}
+
+async function insertDemoHousehold(
+  ctx: MutationCtx,
+  clerkUserId: string,
+  initialHouseholdName?: string,
+) {
   const now = new Date().toISOString();
   const date = "2026-05-31";
 
   const householdId = await ctx.db.insert("households", {
-    name: "The Parker Household",
+    name: normaliseInitialHouseholdName(initialHouseholdName),
     createdAt: now,
   });
   await ctx.db.patch(householdId, { parentLockPinHash: await hashPin("2468", householdId) });
@@ -123,6 +133,7 @@ async function insertDemoHousehold(ctx: MutationCtx, clerkUserId: string) {
     name: "Maya",
     pinHash: await hashPin("1234", householdId),
     avatarColour: "#ffcf5a",
+    avatarPreset: "star",
     pointsBalance: 42,
   });
 
@@ -316,6 +327,7 @@ async function deleteExistingDemoHousehold(ctx: MutationCtx, clerkUserId: string
 export const demo = mutation({
   args: {
     clerkUserId: v.string(),
+    initialHouseholdName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existingParent = await ctx.db
@@ -331,13 +343,14 @@ export const demo = mutation({
       };
     }
 
-    return await insertDemoHousehold(ctx, args.clerkUserId);
+    return await insertDemoHousehold(ctx, args.clerkUserId, args.initialHouseholdName);
   },
 });
 
 export const e2eReset = mutation({
   args: {
     clerkUserId: v.string(),
+    initialHouseholdName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (process.env.E2E_AUTH_BYPASS !== "true") {
@@ -351,6 +364,6 @@ export const e2eReset = mutation({
     }
 
     await deleteExistingDemoHousehold(ctx, args.clerkUserId);
-    return await insertDemoHousehold(ctx, args.clerkUserId);
+    return await insertDemoHousehold(ctx, args.clerkUserId, args.initialHouseholdName);
   },
 });
