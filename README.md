@@ -38,6 +38,14 @@ pnpm test:e2e     # Playwright
 pnpm convex:dev   # local Convex development
 ```
 
+## End-to-End Test User Stories
+
+The Playwright smoke tests in `tests/e2e/app.spec.ts` cover these user stories:
+
+- `child can unlock and view today's routines`: As a child, I want to unlock child mode with my PIN so I can see the routines I need to complete today.
+- `parent can view dashboard and approval queue`: As a parent, I want to review today's household dashboard and open the approvals queue so I can verify submitted routines.
+- `parent can edit a demo routine and keep edit history`: As a parent, I want to edit a routine template while keeping an archived copy of the previous version so routine history remains traceable.
+
 ## Product Constraints
 
 v1 supports one household, one child and up to two parents. Child mode is PIN based inside a parent-authenticated household session. Parent-only data must be protected in Convex functions, not only in client routes.
