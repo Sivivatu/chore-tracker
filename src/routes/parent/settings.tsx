@@ -45,9 +45,7 @@ export function ParentSettingsPage() {
       <Card>
         <p className="text-sm font-black uppercase text-teal">Household</p>
         <h1 className="mt-2 text-3xl font-black">{context?.household.name ?? "Household"}</h1>
-        <p className="mt-4 text-sm text-ink/60">
-          Parent: {context?.parent.name ?? "Loading"}
-        </p>
+        <p className="mt-4 text-sm text-ink/60">Parent: {context?.parent.name ?? "Loading"}</p>
         <p className="text-sm text-ink/60">Child profile: {context?.child?.name ?? "Loading"}</p>
         <form onSubmit={saveParentPin} className="mt-6 rounded-md bg-paper p-4">
           <p className="text-base font-black">Parent lock PIN</p>
@@ -70,9 +68,11 @@ export function ParentSettingsPage() {
               setStatusMessage("");
             }}
             className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
-            aria-describedby={[error ? "parent-lock-error" : "", statusMessage ? "parent-lock-status" : ""]
-              .filter(Boolean)
-              .join(" ") || undefined}
+            aria-describedby={
+              [error ? "parent-lock-error" : "", statusMessage ? "parent-lock-status" : ""]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
           />
           {error ? (
             <p id="parent-lock-error" className="mt-2 text-sm font-bold text-rose-700">
@@ -95,9 +95,7 @@ export function ParentSettingsPage() {
           {(auditEvents ?? []).map((event) => (
             <li key={event._id} className="rounded-md bg-paper p-3">
               <p className="font-semibold">{event.action}</p>
-              <p className="text-sm text-ink/60">
-                {formatBritishDateTime(event.createdAt)}
-              </p>
+              <p className="text-sm text-ink/60">{formatBritishDateTime(event.createdAt)}</p>
             </li>
           ))}
         </ol>

@@ -1,14 +1,39 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { assertHouseholdAccess, requireParent } from "./security";
+import { hashPin, verifyPin } from "./pins";
+import type { Doc } from "./_generated/dataModel";
 
-const defaultParentLockPin = "2468";
+function publicHousehold(household: Doc<"households">) {
+  return {
+    _id: household._id,
+    _creationTime: household._creationTime,
+    name: household.name,
+    createdAt: household.createdAt,
+  };
+}
+
+function publicChild(child: Doc<"children"> | undefined) {
+  if (!child) return null;
+
+  return {
+    _id: child._id,
+    _creationTime: child._creationTime,
+    householdId: child.householdId,
+    name: child.name,
+    avatarColour: child.avatarColour,
+    pointsBalance: child.pointsBalance,
+  };
+}
 
 export const current = query({
   args: {},
   handler: async (ctx) => {
     const parent = await requireParent(ctx);
-    return await ctx.db.get(parent.householdId);
+    const household = await ctx.db.get(parent.householdId);
+    if (!household) return null;
+
+    return publicHousehold(household);
   },
 });
 
@@ -19,12 +44,14 @@ export const currentContext = query({
     const household = await ctx.db.get(parent.householdId);
     if (!household) throw new Error("Household not found");
 
-    const child = await ctx.db
-      .query("children")
-      .withIndex("by_household", (query) => query.eq("householdId", parent.householdId))
-      .unique();
+    const child = (
+      await ctx.db
+        .query("children")
+        .withIndex("by_household", (query) => query.eq("householdId", parent.householdId))
+        .take(1)
+    ).at(0);
 
-    return { household, parent, child };
+    return { household: publicHousehold(household), parent, child: publicChild(child) };
   },
 });
 
@@ -48,7 +75,9 @@ export const setParentLockPin = mutation({
       throw new Error("Parent lock PIN must be 4 to 8 digits");
     }
 
-    await ctx.db.patch(args.householdId, { parentLockPinHash: pin });
+    await ctx.db.patch(args.householdId, {
+      parentLockPinHash: await hashPin(pin, args.householdId),
+    });
     return { configured: true };
   },
 });
@@ -60,6 +89,6 @@ export const verifyParentLockPin = query({
     const household = await ctx.db.get(args.householdId);
     if (!household) throw new Error("Household not found");
 
-    return (household.parentLockPinHash ?? defaultParentLockPin) === args.pin.trim();
+    return await verifyPin(args.pin, household.parentLockPinHash, args.householdId);
   },
 });

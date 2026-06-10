@@ -14,6 +14,7 @@ import type * as childMode from "../childMode.js";
 import type * as dashboard from "../dashboard.js";
 import type * as holidayPauses from "../holidayPauses.js";
 import type * as households from "../households.js";
+import type * as pins from "../pins.js";
 import type * as rewards from "../rewards.js";
 import type * as routines from "../routines.js";
 import type * as security from "../security.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   dashboard: typeof dashboard;
   holidayPauses: typeof holidayPauses;
   households: typeof households;
+  pins: typeof pins;
   rewards: typeof rewards;
   routines: typeof routines;
   security: typeof security;

@@ -23,7 +23,7 @@ pnpm dev
 
 The local app runs at `http://localhost:5173`.
 
-Populate `.env.local` with Clerk and Convex values before connecting to real services. The checked-in demo UI uses local seed data so the interface and tests can run before external projects are configured.
+Populate `.env.local` with Clerk and Convex values before connecting to real services. Blank `VITE_CONVEX_URL` values fall back to the local placeholder URL in development, so copying `.env.example` before creating a Convex deployment will not break the Vite dev server.
 
 ## Scripts
 
@@ -45,6 +45,9 @@ The Playwright smoke tests in `tests/e2e/app.spec.ts` cover these user stories:
 - `child can unlock and view today's routines`: As a child, I want to unlock child mode with my PIN so I can see the routines I need to complete today.
 - `parent can view dashboard and approval queue`: As a parent, I want to review today's household dashboard and open the approvals queue so I can verify submitted routines.
 - `parent can edit a demo routine and keep edit history`: As a parent, I want to edit a routine template while keeping an archived copy of the previous version so routine history remains traceable.
+- `parent can create and customise reward visuals with SVG icons`: As a parent, I want to create a reward, let the app assign a default icon, then edit it to a chosen SVG icon so reward cards stay visual and customisable.
+
+UploadThing image upload is covered as a manual smoke journey rather than CI E2E: run with Clerk, `CLERK_SECRET_KEY` and `UPLOADTHING_TOKEN`, upload a reward image on `/parent/rewards`, save, refresh, and confirm the uploaded image persists.
 
 ## Product Constraints
 

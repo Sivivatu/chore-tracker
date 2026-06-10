@@ -203,6 +203,8 @@ export const rewardOptions: RewardOption[] = [
     title: "Family film night",
     pointsCost: 50,
     active: true,
+    visualType: "icon",
+    iconKey: "film",
   },
   {
     id: "reward-park",
@@ -210,6 +212,8 @@ export const rewardOptions: RewardOption[] = [
     title: "Pick the park",
     pointsCost: 35,
     active: true,
+    visualType: "icon",
+    iconKey: "park",
   },
   {
     id: "reward-baking",
@@ -217,6 +221,8 @@ export const rewardOptions: RewardOption[] = [
     title: "Weekend baking choice",
     pointsCost: 45,
     active: true,
+    visualType: "icon",
+    iconKey: "baking",
   },
 ];
 

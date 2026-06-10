@@ -42,16 +42,34 @@ export const approve = mutation({
       throw new Error("Routine not found");
     if (instance.status !== "submitted") throw new Error("Only submitted routines can be approved");
 
+    const steps = await ctx.db
+      .query("stepInstances")
+      .withIndex("by_routine_instance", (query) =>
+        query.eq("routineInstanceId", args.routineInstanceId),
+      )
+      .collect();
+    const earnedPoints = steps
+      .filter((step) => step.completedAt)
+      .reduce((total, step) => total + step.snapshotPoints, 0);
+    const child = await ctx.db.get(instance.childId);
+    if (!child || child.householdId !== args.householdId) {
+      throw new Error("Child profile not found");
+    }
+
     await ctx.db.patch(args.routineInstanceId, {
       status: "approved",
       approvedAt: new Date().toISOString(),
       approvedByParentId: parent._id,
+    });
+    await ctx.db.patch(child._id, {
+      pointsBalance: child.pointsBalance + earnedPoints,
     });
     await ctx.db.insert("auditEvents", {
       householdId: args.householdId,
       actorId: parent._id,
       action: "Routine approved",
       createdAt: new Date().toISOString(),
+      metadata: { routineInstanceId: args.routineInstanceId, earnedPoints },
     });
   },
 });
@@ -67,6 +85,7 @@ export const reject = mutation({
     const instance = await ctx.db.get(args.routineInstanceId);
     if (!instance || instance.householdId !== args.householdId)
       throw new Error("Routine not found");
+    if (instance.status !== "submitted") throw new Error("Only submitted routines can be rejected");
 
     await ctx.db.patch(args.routineInstanceId, {
       status: "rejected",
@@ -78,6 +97,7 @@ export const reject = mutation({
       actorId: parent._id,
       action: "Routine rejected",
       createdAt: new Date().toISOString(),
+      metadata: { routineInstanceId: args.routineInstanceId },
     });
   },
 });

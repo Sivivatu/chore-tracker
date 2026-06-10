@@ -27,7 +27,9 @@ export default defineSchema({
     pinHash: v.string(),
     avatarColour: v.string(),
     pointsBalance: v.number(),
-  }).index("by_household", ["householdId"]),
+  })
+    .index("by_household", ["householdId"])
+    .index("by_household_and_pinHash", ["householdId", "pinHash"]),
   routineTemplates: defineTable({
     householdId: v.id("households"),
     name: v.string(),
@@ -118,6 +120,11 @@ export default defineSchema({
     title: v.string(),
     pointsCost: v.number(),
     active: v.boolean(),
+    visualType: v.optional(v.union(v.literal("icon"), v.literal("upload"))),
+    iconKey: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    uploadThingKey: v.optional(v.string()),
+    imageName: v.optional(v.string()),
   }).index("by_household", ["householdId"]),
   reminders: defineTable({
     householdId: v.id("households"),
@@ -134,7 +141,7 @@ export default defineSchema({
   }).index("by_household", ["householdId"]),
   auditEvents: defineTable({
     householdId: v.id("households"),
-    actorId: v.string(),
+    actorId: v.union(v.id("parents"), v.id("children"), v.string()),
     action: v.string(),
     createdAt: v.string(),
     metadata: v.optional(v.any()),

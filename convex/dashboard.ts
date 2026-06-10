@@ -14,12 +14,14 @@ export const summary = query({
       .collect();
     const submittedCount = instances.filter((instance) => instance.status === "submitted").length;
     const approvedCount = instances.filter((instance) => instance.status === "approved").length;
-    const actionableCount = instances.filter((instance) => instance.status !== "paused").length;
+    const completedCount = instances.filter((instance) =>
+      ["approved", "submitted", "rejected"].includes(instance.status),
+    ).length;
     return {
       submittedCount,
       approvedCount,
       completionPercentage:
-        actionableCount === 0 ? 0 : Math.round((approvedCount / actionableCount) * 100),
+        completedCount === 0 ? 0 : Math.round((approvedCount / completedCount) * 100),
     };
   },
 });

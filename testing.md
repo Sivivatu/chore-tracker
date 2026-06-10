@@ -104,6 +104,15 @@ Do not optimise for 100% coverage if it leads to brittle or low-value tests.
 - Paused days do not break streaks by default.
 - Calendar displays paused days.
 
+### Rewards
+
+- Parent can create a reward.
+- A reward saved without an image or icon gets a persisted random SVG icon.
+- Parent can edit a reward and choose a specific SVG icon.
+- Reward title, points cost, active state and selected icon persist after reload.
+- Invalid reward saves show inline validation and do not submit.
+- UploadThing image uploads are covered by manual/smoke E2E with Clerk and `UPLOADTHING_TOKEN`, not by CI E2E.
+
 ### Dashboard
 
 - Daily completion calculation is correct.

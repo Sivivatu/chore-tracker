@@ -10,6 +10,7 @@ import { formatBritishDateTime } from "@/lib/dates";
 import type { RoutineType } from "@/types/domain";
 
 type StepForm = {
+  id: string;
   title: string;
   description: string;
   points: number;
@@ -42,6 +43,7 @@ const routineTypes: RoutineType[] = ["morning", "evening", "weekend", "custom"];
 const accentOptions = ["#f97316", "#14b8a6", "#eab308", "#38bdf8", "#a855f7", "#ef4444", "#22c55e"];
 
 const blankStep = (): StepForm => ({
+  id: crypto.randomUUID(),
   title: "",
   description: "",
   points: 5,
@@ -70,6 +72,7 @@ function formFromRoutine(routine: RoutineTemplateWithSteps): RoutineForm {
       .slice()
       .sort((a, b) => a.order - b.order)
       .map((step) => ({
+        id: step.id,
         title: step.title,
         description: step.description,
         points: step.points,
@@ -216,7 +219,10 @@ function RoutineEditor({
 
   async function saveRoutine(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!householdId) return;
+    if (!householdId) {
+      setError("Household context is still loading. Try again in a moment.");
+      return;
+    }
 
     const validationError = validateForm();
     if (validationError) {
@@ -230,7 +236,14 @@ function RoutineEditor({
       type: form.type,
       active: form.active,
       schedule: form.schedule,
-      steps: form.steps,
+      steps: form.steps.map((step) => ({
+        title: step.title,
+        description: step.description,
+        points: step.points,
+        required: step.required,
+        illustrationKey: step.illustrationKey,
+        accent: step.accent,
+      })),
     };
 
     setSaving(true);
@@ -340,6 +353,7 @@ function RoutineEditor({
                   <button
                     key={day}
                     type="button"
+                    aria-pressed={form.schedule.includes(day)}
                     className={`rounded-md border px-3 py-2 text-sm font-bold ${
                       form.schedule.includes(day)
                         ? "border-teal bg-teal text-white"
@@ -369,7 +383,7 @@ function RoutineEditor({
               </Button>
             </div>
             {form.steps.map((step, index) => (
-              <div key={index} className="grid gap-3 rounded-md bg-paper p-4">
+              <div key={step.id} className="grid gap-3 rounded-md bg-paper p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-black">Step {index + 1}</p>
                   <div className="flex gap-2">

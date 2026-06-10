@@ -7,3 +7,5 @@
 - [ ] update theme to a fun child friendly theme on child pages and not codex style for adult pages
 - [ ] update the settings page to allow the setting of names
 - [ ] do i want to add a behaviour page where bad behaviour can be tracked and it loses reward points?
+- [ ] add existing image file detection and minimisation processing
+- [ ]

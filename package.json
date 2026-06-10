@@ -16,17 +16,20 @@
     "convex:deploy": "convex deploy"
   },
   "dependencies": {
+    "@clerk/backend": "^3.5.0",
     "@clerk/clerk-react": "^5.55.0",
     "@tanstack/react-router": "^1.139.4",
+    "@uploadthing/react": "^7.3.3",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.31.0",
-    "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "recharts": "^3.6.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "uploadthing": "^7.7.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

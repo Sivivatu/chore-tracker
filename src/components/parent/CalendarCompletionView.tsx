@@ -28,7 +28,13 @@ export function CalendarCompletionView() {
             <p className="text-xs font-bold leading-tight text-ink/60">{day.label}</p>
             <p className="mt-2 text-2xl font-black leading-none">{day.approved}</p>
             <p className="mt-1 truncate text-[10px] leading-tight text-ink/60">
-              {day.paused ? "Paused" : day.submitted ? "Submitted" : "Approved"}
+              {day.paused
+                ? "Paused"
+                : day.submitted
+                  ? "Submitted"
+                  : day.approved
+                    ? "Approved"
+                    : "No routines"}
             </p>
           </div>
         ))}

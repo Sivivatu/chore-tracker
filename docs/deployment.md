@@ -26,6 +26,7 @@ Create `.env.example` with the following variables:
 # Clerk
 VITE_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+CLERK_JWT_ISSUER_DOMAIN=
 
 # Convex
 VITE_CONVEX_URL=
@@ -69,7 +70,7 @@ These steps should be completed manually in the local dev container before askin
 
 1. Create or connect a Convex project.
 2. Configure Convex environment.
-3. Configure Clerk as the auth provider for Convex.
+3. Configure Clerk as the auth provider for Convex using `CLERK_JWT_ISSUER_DOMAIN`.
 4. Confirm Convex deploy/dev command works locally.
 5. Add Convex URL to local environment.
 
