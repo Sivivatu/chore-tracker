@@ -14,12 +14,14 @@ import { SignUpPage } from "@/routes/sign-up";
 import { ParentDashboardPage } from "@/routes/parent/dashboard";
 import { ParentRoutinesPage } from "@/routes/parent/routines";
 import { ParentApprovalsPage } from "@/routes/parent/approvals";
+import { ParentChoresPage } from "@/routes/parent/chores";
 import { ParentRewardsPage } from "@/routes/parent/rewards";
 import { ParentPausesPage } from "@/routes/parent/pauses";
 import { ParentSettingsPage } from "@/routes/parent/settings";
 import { ChildUnlockPage } from "@/routes/child/unlock";
 import { ChildParentUnlockPage } from "@/routes/child/parent-unlock";
 import { ChildTodayPage } from "@/routes/child/today";
+import { ChildChoresPage } from "@/routes/child/chores";
 import { ChildRoutinePage } from "@/routes/child/routine";
 
 const rootRoute = createRootRoute({
@@ -106,6 +108,11 @@ const routeTree = rootRoute.addChildren([
     }),
     createRoute({
       getParentRoute: () => parentRoute,
+      path: "/chores",
+      component: ParentChoresPage,
+    }),
+    createRoute({
+      getParentRoute: () => parentRoute,
       path: "/rewards",
       component: ParentRewardsPage,
     }),
@@ -136,6 +143,11 @@ const routeTree = rootRoute.addChildren([
         getParentRoute: () => childSessionRoute,
         path: "/today",
         component: ChildTodayPage,
+      }),
+      createRoute({
+        getParentRoute: () => childSessionRoute,
+        path: "/chores",
+        component: ChildChoresPage,
       }),
       createRoute({
         getParentRoute: () => childSessionRoute,

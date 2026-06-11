@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "./AppLayout";
 import { createChildSession, saveChildSession } from "@/lib/child-session";
@@ -30,6 +31,7 @@ describe("AppLayout", () => {
     expect(screen.queryByRole("link", { name: /routines/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Account controls")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /today/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /chores/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /parent unlock/i })).toBeInTheDocument();
   });
 
@@ -37,6 +39,18 @@ describe("AppLayout", () => {
     render(<AppLayout>Parent content</AppLayout>);
 
     expect(screen.getByRole("link", { name: /routines/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /chores/i })).toBeInTheDocument();
     expect(screen.getAllByText("Account controls")).toHaveLength(2);
+  });
+
+  it("opens and closes the mobile menu", async () => {
+    const user = userEvent.setup();
+    render(<AppLayout>Parent content</AppLayout>);
+
+    await user.click(screen.getByRole("button", { name: /menu/i }));
+    expect(screen.getAllByRole("link", { name: /chores/i })).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: /close/i }));
+    expect(screen.getByRole("button", { name: /menu/i })).toBeInTheDocument();
   });
 });

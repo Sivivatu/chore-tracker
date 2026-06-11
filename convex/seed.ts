@@ -206,6 +206,21 @@ async function insertDemoHousehold(
     visualType: "icon",
     iconKey: "park",
   });
+  await ctx.db.insert("choreSettings", {
+    householdId,
+    dailyMultiplier: 1,
+    weeklyMultiplier: 3,
+    monthlyMultiplier: 10,
+  });
+  await ctx.db.insert("chores", {
+    householdId,
+    title: "Water the plants",
+    description: "Check the kitchen and living room plants.",
+    frequency: "weekly",
+    basePoints: 2,
+    active: true,
+    createdByParentId: parentId,
+  });
   await ctx.db.insert("holidayPauses", {
     householdId,
     startDate: "2026-06-07",
@@ -294,6 +309,30 @@ async function deleteExistingDemoHousehold(ctx: MutationCtx, clerkUserId: string
     .collect();
   for (const reward of rewards) {
     await ctx.db.delete(reward._id);
+  }
+
+  const choreSubmissions = await ctx.db
+    .query("choreSubmissions")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const submission of choreSubmissions) {
+    await ctx.db.delete(submission._id);
+  }
+
+  const chores = await ctx.db
+    .query("chores")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const chore of chores) {
+    await ctx.db.delete(chore._id);
+  }
+
+  const choreSettings = await ctx.db
+    .query("choreSettings")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+  for (const settings of choreSettings) {
+    await ctx.db.delete(settings._id);
   }
 
   const reminders = await ctx.db

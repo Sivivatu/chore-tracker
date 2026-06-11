@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { type PropsWithChildren, useEffect, useRef, useState } from "react";
-import { ClipboardCheck, Home, KeyRound, Menu, Settings, Star, X } from "lucide-react";
+import { ClipboardCheck, Home, KeyRound, ListChecks, Menu, Settings, Star, X } from "lucide-react";
 import { AccountControls } from "@/components/auth/AccountControls";
 import { hasActiveChildSession } from "@/lib/child-session";
 
@@ -8,6 +8,7 @@ const nav = [
   { to: "/parent/dashboard", label: "Dashboard", icon: Home },
   { to: "/parent/routines", label: "Routines", icon: ClipboardCheck },
   { to: "/parent/approvals", label: "Approvals", icon: KeyRound },
+  { to: "/parent/chores", label: "Chores", icon: ListChecks },
   { to: "/parent/rewards", label: "Rewards", icon: Star },
   { to: "/parent/settings", label: "Settings", icon: Settings },
 ];
@@ -96,6 +97,13 @@ export function AppLayout({ children }: PropsWithChildren) {
                       Today
                     </Link>
                     <Link
+                      to="/child/chores"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-ink/75 hover:bg-ink/5 [&.active]:bg-ink [&.active]:text-white"
+                    >
+                      <ListChecks aria-hidden className="h-4 w-4" />
+                      Chores
+                    </Link>
+                    <Link
                       to="/child/parent-unlock"
                       className="inline-flex min-h-10 items-center gap-2 rounded-md bg-coral px-3 text-sm font-bold text-white hover:bg-coral/90"
                     >
@@ -149,6 +157,13 @@ export function AppLayout({ children }: PropsWithChildren) {
                     >
                       <Home aria-hidden className="h-4 w-4" />
                       Today
+                    </Link>
+                    <Link
+                      to="/child/chores"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-ink/75 hover:bg-ink/5 [&.active]:bg-ink [&.active]:text-white"
+                    >
+                      <ListChecks aria-hidden className="h-4 w-4" />
+                      Chores
                     </Link>
                     <Link
                       to="/child/parent-unlock"
