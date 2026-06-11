@@ -2,7 +2,7 @@
 
 - [x] need to add a lock on child page to prevent easy editing of routines & chores by child
 - [ ] add a chores list with chores that can be done on different time schedules. they refresh each week
-- [ ] update reward page to link to live datasets. also add reward editing so rewards can be customised.
+- [x] update reward page to link to live datasets. also add reward editing so rewards can be customised.
 - [ ] find out how to gate signups
 - [ ] update theme to a fun child friendly theme on child pages and not codex style for adult pages
 - [ ] update the settings page to allow the setting of names
