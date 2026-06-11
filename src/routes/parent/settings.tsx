@@ -30,7 +30,12 @@ export function ParentSettingsPage() {
     api.auditEvents.list,
     context?.household ? { householdId: context.household._id } : "skip",
   );
+  const choreSettings = useQuery(
+    api.chores.getSettingsForHousehold,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
   const setParentLockPin = useMutation(api.households.setParentLockPin);
+  const upsertChoreSettings = useMutation(api.chores.upsertSettings);
 
   async function saveParentPin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,6 +76,14 @@ export function ParentSettingsPage() {
             key={primaryChild._id}
             householdId={context.household._id}
             child={primaryChild}
+          />
+        ) : null}
+        {context?.household ? (
+          <ChoreSettingsForm
+            key={`${context.household._id}-${choreSettings?.dailyMultiplier ?? "loading"}`}
+            householdId={context.household._id}
+            settings={choreSettings}
+            upsertChoreSettings={upsertChoreSettings}
           />
         ) : null}
         <form onSubmit={saveParentPin} className="mt-6 rounded-md bg-paper p-4">
@@ -127,6 +140,113 @@ export function ParentSettingsPage() {
         </ol>
       </Card>
     </section>
+  );
+}
+
+function ChoreSettingsForm({
+  householdId,
+  settings,
+  upsertChoreSettings,
+}: {
+  householdId: Id<"households">;
+  settings:
+    | {
+        dailyMultiplier: number;
+        weeklyMultiplier: number;
+        monthlyMultiplier: number;
+      }
+    | undefined;
+  upsertChoreSettings: ReturnType<typeof useMutation<typeof api.chores.upsertSettings>>;
+}) {
+  const [dailyMultiplier, setDailyMultiplier] = useState(settings?.dailyMultiplier ?? 1);
+  const [weeklyMultiplier, setWeeklyMultiplier] = useState(settings?.weeklyMultiplier ?? 3);
+  const [monthlyMultiplier, setMonthlyMultiplier] = useState(settings?.monthlyMultiplier ?? 10);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function saveChoreSettings(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setStatusMessage("");
+
+    const values = [dailyMultiplier, weeklyMultiplier, monthlyMultiplier];
+    if (values.some((value) => !Number.isInteger(value) || value < 0)) {
+      setError("Chore multipliers must be non-negative whole numbers.");
+      return;
+    }
+
+    try {
+      await upsertChoreSettings({
+        householdId,
+        dailyMultiplier,
+        weeklyMultiplier,
+        monthlyMultiplier,
+      });
+      setStatusMessage("Chore multipliers saved.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save chore multipliers.");
+    }
+  }
+
+  return (
+    <form onSubmit={saveChoreSettings} noValidate className="mt-4 rounded-md bg-paper p-4">
+      <p className="text-base font-black">Chore multipliers</p>
+      <p className="mt-1 text-sm text-ink/60">
+        Chore rewards use base points multiplied by these values.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <label htmlFor="daily-chore-multiplier" className="grid gap-2 text-sm font-bold">
+          Daily
+          <input
+            id="daily-chore-multiplier"
+            type="number"
+            min={0}
+            value={dailyMultiplier}
+            onChange={(event) => {
+              setDailyMultiplier(Number(event.target.value));
+              setError("");
+              setStatusMessage("");
+            }}
+            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+          />
+        </label>
+        <label htmlFor="weekly-chore-multiplier" className="grid gap-2 text-sm font-bold">
+          Weekly
+          <input
+            id="weekly-chore-multiplier"
+            type="number"
+            min={0}
+            value={weeklyMultiplier}
+            onChange={(event) => {
+              setWeeklyMultiplier(Number(event.target.value));
+              setError("");
+              setStatusMessage("");
+            }}
+            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+          />
+        </label>
+        <label htmlFor="monthly-chore-multiplier" className="grid gap-2 text-sm font-bold">
+          Monthly
+          <input
+            id="monthly-chore-multiplier"
+            type="number"
+            min={0}
+            value={monthlyMultiplier}
+            onChange={(event) => {
+              setMonthlyMultiplier(Number(event.target.value));
+              setError("");
+              setStatusMessage("");
+            }}
+            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+          />
+        </label>
+      </div>
+      {error ? <p className="mt-2 text-sm font-bold text-rose-700">{error}</p> : null}
+      {statusMessage ? <p className="mt-2 text-sm font-bold text-teal">{statusMessage}</p> : null}
+      <Button className="mt-4" type="submit">
+        Save chore multipliers
+      </Button>
+    </form>
   );
 }
 

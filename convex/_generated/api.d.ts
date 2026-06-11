@@ -11,6 +11,7 @@
 import type * as approvals from "../approvals.js";
 import type * as auditEvents from "../auditEvents.js";
 import type * as childMode from "../childMode.js";
+import type * as chores from "../chores.js";
 import type * as dashboard from "../dashboard.js";
 import type * as holidayPauses from "../holidayPauses.js";
 import type * as households from "../households.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   approvals: typeof approvals;
   auditEvents: typeof auditEvents;
   childMode: typeof childMode;
+  chores: typeof chores;
   dashboard: typeof dashboard;
   holidayPauses: typeof holidayPauses;
   households: typeof households;

@@ -79,6 +79,7 @@ test("parent can edit a demo routine and keep edit history", async ({ page }) =>
 test("parent can create a new routine", async ({ page }) => {
   await page.goto("/parent/routines");
   await expect(page.getByRole("heading", { name: "Templates and chore steps" })).toBeVisible();
+  await expect(page.getByText("My Morning Routine")).toBeVisible();
 
   await page
     .getByRole("button", { name: /^create routine$/i })
@@ -89,6 +90,7 @@ test("parent can create a new routine", async ({ page }) => {
   await page.getByLabel(/illustration key/i).fill("cards");
   await page.getByLabel(/description/i).fill("Put the cards back into the storage box.");
   await page.getByLabel(/points/i).fill("7");
+  await expect(page.getByText(/household context is still loading/i)).toHaveCount(0);
   await page
     .getByRole("button", { name: /^create routine$/i })
     .last()
@@ -132,4 +134,57 @@ test("parent can create and customise reward visuals with uploaded images and SV
 
   await page.getByRole("button", { name: /create reward/i }).click();
   await expect(page.getByText("Reward title is required.")).toBeVisible();
+});
+
+test("child can submit repeated chores and parent approves full then half points", async ({
+  page,
+}) => {
+  await page.goto("/child/unlock");
+  await page.getByLabel("Enter your PIN").fill("1234");
+  await page.getByRole("button", { name: "Unlock routines" }).click();
+  await expect(page.getByRole("heading", { name: /your routines/i })).toBeVisible();
+
+  await page.goto("/child/chores");
+  await expect(page.getByRole("heading", { name: /extra chores/i })).toBeVisible();
+  await expect(page.getByText("Water the plants")).toBeVisible();
+  await expect(page.getByText("Full reward: 2 x 3")).toBeVisible();
+  await page
+    .getByRole("button", { name: /submit for approval/i })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: /submitted/i })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("Repeat reward: 2 x 3")).toBeVisible();
+  await page
+    .getByRole("button", { name: /submit for approval/i })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: /submitted/i })).toBeVisible();
+
+  await page.goto("/child/parent-unlock");
+  await page.getByLabel(/enter parent pin/i).fill("2468");
+  await page.getByRole("button", { name: /unlock parent pages/i }).click();
+  await page.waitForFunction(() => localStorage.getItem("chore-tracker-child-session") === null);
+  await page.goto("/parent/approvals");
+
+  const choreApprovals = page
+    .getByTestId("chore-approval-card")
+    .filter({ hasText: "Water the plants" });
+  await expect(choreApprovals).toHaveCount(2);
+  await expect(choreApprovals.filter({ hasText: "6 points" })).toHaveCount(1);
+  await expect(choreApprovals.filter({ hasText: "3 points" })).toHaveCount(1);
+  await choreApprovals
+    .first()
+    .getByRole("button", { name: /approve/i })
+    .click();
+  await expect(choreApprovals).toHaveCount(1);
+  await choreApprovals
+    .first()
+    .getByRole("button", { name: /approve/i })
+    .click();
+  await expect(choreApprovals).toHaveCount(0);
+
+  await page.goto("/parent/rewards");
+  await expect(page.getByRole("heading", { name: /51 points/i })).toBeVisible();
 });

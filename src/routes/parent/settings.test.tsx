@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ParentSettingsPage } from "./settings";
@@ -7,6 +7,7 @@ const convexState = vi.hoisted(() => ({
   setParentLockPin: vi.fn(),
   updateHouseholdIdentity: vi.fn(),
   updateChildIdentity: vi.fn(),
+  upsertChoreSettings: vi.fn(),
   context: {
     household: { _id: "household-1", name: "The Parker Household" },
     parent: {
@@ -35,6 +36,7 @@ const convexState = vi.hoisted(() => ({
     ],
   },
   parentLockStatus: { configured: true },
+  choreSettings: { dailyMultiplier: 1, weeklyMultiplier: 3, monthlyMultiplier: 10 },
   auditEvents: [
     {
       _id: "audit-1",
@@ -50,11 +52,13 @@ vi.mock("convex/react", () => ({
       return convexState.updateHouseholdIdentity;
     }
     if (mutation._name?.includes("updateChildIdentity")) return convexState.updateChildIdentity;
+    if (mutation._name?.includes("upsertSettings")) return convexState.upsertChoreSettings;
     return convexState.setParentLockPin;
   },
   useQuery: (query: { _name?: string }) => {
     if (query._name?.includes("currentContext")) return convexState.context;
     if (query._name?.includes("parentLockStatus")) return convexState.parentLockStatus;
+    if (query._name?.includes("getSettingsForHousehold")) return convexState.choreSettings;
     if (query._name?.includes("auditEvents")) return convexState.auditEvents;
     return undefined;
   },
@@ -70,6 +74,10 @@ vi.mock("../../../convex/_generated/api", () => ({
       updateHouseholdIdentity: { _name: "updateHouseholdIdentity" },
       updateChildIdentity: { _name: "updateChildIdentity" },
     },
+    chores: {
+      getSettingsForHousehold: { _name: "getSettingsForHousehold" },
+      upsertSettings: { _name: "upsertSettings" },
+    },
   },
 }));
 
@@ -78,9 +86,11 @@ describe("ParentSettingsPage", () => {
     convexState.setParentLockPin.mockReset();
     convexState.updateHouseholdIdentity.mockReset();
     convexState.updateChildIdentity.mockReset();
+    convexState.upsertChoreSettings.mockReset();
     convexState.setParentLockPin.mockResolvedValue({ configured: true });
     convexState.updateHouseholdIdentity.mockResolvedValue({});
     convexState.updateChildIdentity.mockResolvedValue({});
+    convexState.upsertChoreSettings.mockResolvedValue({});
   });
 
   it("renders current household and child identity from Convex context", () => {
@@ -206,5 +216,44 @@ describe("ParentSettingsPage", () => {
     expect(convexState.updateChildIdentity).toHaveBeenCalledWith(
       expect.objectContaining({ avatarColour: "#123abc" }),
     );
+  });
+
+  it("saves chore reward multipliers", async () => {
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.clear(screen.getByLabelText(/weekly/i));
+    await user.type(screen.getByLabelText(/weekly/i), "4");
+    await user.click(screen.getByRole("button", { name: /save chore multipliers/i }));
+
+    expect(convexState.upsertChoreSettings).toHaveBeenCalledWith({
+      householdId: "household-1",
+      dailyMultiplier: 1,
+      weeklyMultiplier: 4,
+      monthlyMultiplier: 10,
+    });
+    expect(await screen.findByText("Chore multipliers saved.")).toBeInTheDocument();
+  });
+
+  it("validates chore reward multipliers", async () => {
+    render(<ParentSettingsPage />);
+
+    fireEvent.change(screen.getByLabelText(/monthly/i), { target: { value: "1.5" } });
+    fireEvent.click(screen.getByRole("button", { name: /save chore multipliers/i }));
+
+    expect(
+      screen.getByText("Chore multipliers must be non-negative whole numbers."),
+    ).toBeInTheDocument();
+    expect(convexState.upsertChoreSettings).not.toHaveBeenCalled();
+  });
+
+  it("shows chore multiplier save failures", async () => {
+    convexState.upsertChoreSettings.mockRejectedValue(new Error("Multiplier save failed"));
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.click(screen.getByRole("button", { name: /save chore multipliers/i }));
+
+    expect(await screen.findByText("Multiplier save failed")).toBeInTheDocument();
   });
 });

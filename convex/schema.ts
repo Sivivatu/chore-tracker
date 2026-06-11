@@ -10,6 +10,18 @@ export const routineStatus = v.union(
   v.literal("paused"),
 );
 
+export const choreFrequency = v.union(
+  v.literal("daily"),
+  v.literal("weekly"),
+  v.literal("monthly"),
+);
+
+export const choreSubmissionStatus = v.union(
+  v.literal("submitted"),
+  v.literal("approved"),
+  v.literal("rejected"),
+);
+
 export default defineSchema({
   households: defineTable({
     name: v.string(),
@@ -126,6 +138,43 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     uploadThingKey: v.optional(v.string()),
     imageName: v.optional(v.string()),
+  }).index("by_household", ["householdId"]),
+  chores: defineTable({
+    householdId: v.id("households"),
+    title: v.string(),
+    description: v.string(),
+    frequency: choreFrequency,
+    basePoints: v.number(),
+    active: v.boolean(),
+    createdByParentId: v.id("parents"),
+  }).index("by_household", ["householdId"]),
+  choreSubmissions: defineTable({
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    choreId: v.id("chores"),
+    periodKey: v.string(),
+    status: choreSubmissionStatus,
+    snapshotTitle: v.string(),
+    snapshotDescription: v.string(),
+    snapshotFrequency: choreFrequency,
+    snapshotBasePoints: v.number(),
+    snapshotMultiplier: v.number(),
+    repeatCount: v.number(),
+    repeatAdjustment: v.number(),
+    earnedPoints: v.number(),
+    submittedAt: v.string(),
+    approvedAt: v.optional(v.string()),
+    approvedByParentId: v.optional(v.id("parents")),
+    rejectedAt: v.optional(v.string()),
+    rejectionNote: v.optional(v.string()),
+  })
+    .index("by_household", ["householdId"])
+    .index("by_child_and_chore_and_period", ["childId", "choreId", "periodKey"]),
+  choreSettings: defineTable({
+    householdId: v.id("households"),
+    dailyMultiplier: v.number(),
+    weeklyMultiplier: v.number(),
+    monthlyMultiplier: v.number(),
   }).index("by_household", ["householdId"]),
   reminders: defineTable({
     householdId: v.id("households"),
