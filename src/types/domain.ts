@@ -27,6 +27,7 @@ export type ChildProfile = {
   name: string;
   pinHash: string;
   avatarColour: string;
+  avatarPreset?: string;
   pointsBalance: number;
 };
 
