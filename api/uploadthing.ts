@@ -118,12 +118,7 @@ export const uploadRouter = {
 
       return { uploadedBy: verified.subject };
     })
-    .onUploadComplete(({ file, metadata }) => ({
-      uploadedBy: metadata.uploadedBy,
-      imageUrl: file.ufsUrl,
-      uploadThingKey: file.key,
-      imageName: file.name,
-    })),
+    .onUploadComplete(() => undefined),
 } satisfies FileRouter;
 
 const handler = createRouteHandler({
