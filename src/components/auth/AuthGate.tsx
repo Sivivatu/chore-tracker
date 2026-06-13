@@ -20,8 +20,9 @@ function MissingAuthConfig() {
 }
 
 function ClerkAuthGate({ children }: PropsWithChildren) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, signOut } = useAuth();
   const { isLoading: isConvexLoading, isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!isLoaded || isConvexLoading) {
     return (
@@ -41,9 +42,20 @@ function ClerkAuthGate({ children }: PropsWithChildren) {
         <div className="rounded-lg border border-ink/10 bg-white p-6 shadow-panel">
           <h1 className="mb-3 text-3xl font-black">Unable to verify sign in</h1>
           <p className="max-w-md text-sm text-ink/65">
-            Clerk signed you in, but Convex could not validate this session. Sign out and sign in
-            again. If the problem continues, check the production Clerk issuer configuration.
+            This session is no longer valid. This can happen when the Clerk account has been deleted
+            or revoked.
           </p>
+          <Button
+            className="mt-5"
+            type="button"
+            disabled={isSigningOut}
+            onClick={() => {
+              setIsSigningOut(true);
+              void signOut({ redirectUrl: "/sign-in" }).catch(() => setIsSigningOut(false));
+            }}
+          >
+            {isSigningOut ? "Returning to sign in..." : "Return to sign in"}
+          </Button>
         </div>
       </section>
     );
