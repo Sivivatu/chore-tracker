@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { assertHouseholdAccess, requireParent } from "./security";
+import { assertHouseholdAccess, currentParent, requireParent } from "./security";
 import { hashPin, verifyPin } from "./pins";
 import type { Doc } from "./_generated/dataModel";
 
@@ -52,7 +52,9 @@ export const current = query({
 export const currentContext = query({
   args: {},
   handler: async (ctx) => {
-    const parent = await requireParent(ctx);
+    const parent = await currentParent(ctx);
+    if (!parent) return null;
+
     const household = await ctx.db.get(parent.householdId);
     if (!household) throw new Error("Household not found");
 
@@ -68,6 +70,73 @@ export const currentContext = query({
       child: publicChildren.at(0) ?? null,
       children: publicChildren,
     };
+  },
+});
+
+export const createInitialHousehold = mutation({
+  args: {
+    householdName: v.string(),
+    parentName: v.string(),
+    childName: v.string(),
+    childPin: v.string(),
+    parentPin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const existingParent = await ctx.db
+      .query("parents")
+      .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", identity.subject))
+      .unique();
+    if (existingParent) {
+      return { householdId: existingParent.householdId, parentId: existingParent._id };
+    }
+
+    const householdName = normaliseIdentityName(args.householdName, "Household name");
+    const parentName = normaliseIdentityName(args.parentName, "Parent name");
+    const childName = normaliseIdentityName(args.childName, "Child name");
+    const childPin = args.childPin.trim();
+    const parentPin = args.parentPin.trim();
+
+    if (!/^\d{4}$/.test(childPin)) {
+      throw new Error("Child PIN must be exactly 4 digits");
+    }
+    if (!/^\d{4,8}$/.test(parentPin)) {
+      throw new Error("Parent PIN must be 4 to 8 digits");
+    }
+
+    const householdId = await ctx.db.insert("households", {
+      name: householdName,
+      createdAt: new Date().toISOString(),
+    });
+    await ctx.db.patch(householdId, {
+      parentLockPinHash: await hashPin(parentPin, householdId),
+    });
+
+    const parentId = await ctx.db.insert("parents", {
+      householdId,
+      clerkUserId: identity.subject,
+      name: parentName,
+    });
+    const childId = await ctx.db.insert("children", {
+      householdId,
+      name: childName,
+      pinHash: await hashPin(childPin, householdId),
+      avatarColour: "#ffcf5a",
+      avatarPreset: "star",
+      pointsBalance: 0,
+    });
+
+    await ctx.db.insert("auditEvents", {
+      householdId,
+      actorId: parentId,
+      action: "Household created",
+      createdAt: new Date().toISOString(),
+      metadata: { childId },
+    });
+
+    return { householdId, parentId };
   },
 });
 

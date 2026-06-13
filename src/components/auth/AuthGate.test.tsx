@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthGate } from "./AuthGate";
 
@@ -7,6 +8,10 @@ const authState = vi.hoisted(() => ({
   e2eBypass: false,
   isLoaded: true,
   isSignedIn: true,
+  isConvexLoading: false,
+  isConvexAuthenticated: true,
+  context: { household: { _id: "household-1" } } as object | null | undefined,
+  createHousehold: vi.fn(),
 }));
 
 vi.mock("@/app/providers", () => ({
@@ -21,6 +26,15 @@ vi.mock("@clerk/clerk-react", () => ({
   }),
 }));
 
+vi.mock("convex/react", () => ({
+  useConvexAuth: () => ({
+    isLoading: authState.isConvexLoading,
+    isAuthenticated: authState.isConvexAuthenticated,
+  }),
+  useQuery: () => authState.context,
+  useMutation: () => authState.createHousehold,
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   Navigate: ({ to }: { to: string }) => <div data-testid="redirect">{to}</div>,
 }));
@@ -31,6 +45,11 @@ describe("AuthGate", () => {
     authState.e2eBypass = false;
     authState.isLoaded = true;
     authState.isSignedIn = true;
+    authState.isConvexLoading = false;
+    authState.isConvexAuthenticated = true;
+    authState.context = { household: { _id: "household-1" } };
+    authState.createHousehold.mockReset();
+    authState.createHousehold.mockResolvedValue({ householdId: "household-1" });
   });
 
   it("renders protected content when Clerk is configured and the user is signed in", () => {
@@ -80,6 +99,75 @@ describe("AuthGate", () => {
 
     expect(screen.getByText("Checking sign in...")).toBeInTheDocument();
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading state while Convex validates the Clerk session", () => {
+    authState.isConvexLoading = true;
+
+    render(
+      <AuthGate>
+        <p>Protected dashboard</p>
+      </AuthGate>,
+    );
+
+    expect(screen.getByText("Checking sign in...")).toBeInTheDocument();
+    expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
+  });
+
+  it("reports when Convex cannot validate a signed-in Clerk session", () => {
+    authState.isConvexAuthenticated = false;
+
+    render(
+      <AuthGate>
+        <p>Protected dashboard</p>
+      </AuthGate>,
+    );
+
+    expect(screen.getByText("Unable to verify sign in")).toBeInTheDocument();
+    expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
+  });
+
+  it("shows first-time setup when the signed-in account has no household membership", async () => {
+    authState.context = null;
+
+    render(
+      <AuthGate>
+        <p>Protected dashboard</p>
+      </AuthGate>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Set up your household")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
+  });
+
+  it("creates a fresh household from valid first-time setup details", async () => {
+    const user = userEvent.setup();
+    authState.context = null;
+
+    render(
+      <AuthGate>
+        <p>Protected dashboard</p>
+      </AuthGate>,
+    );
+
+    await user.type(screen.getByLabelText("Household name"), "The Example Household");
+    await user.type(screen.getByLabelText("Parent name"), "Alex");
+    await user.type(screen.getByLabelText("Child name"), "Sam");
+    await user.type(screen.getByLabelText("Child PIN"), "1234");
+    await user.type(screen.getByLabelText("Parent PIN"), "2468");
+    await user.click(screen.getByRole("button", { name: "Create household" }));
+
+    await waitFor(() => {
+      expect(authState.createHousehold).toHaveBeenCalledWith({
+        householdName: "The Example Household",
+        parentName: "Alex",
+        childName: "Sam",
+        childPin: "1234",
+        parentPin: "2468",
+      });
+    });
   });
 
   it("renders protected content in e2e auth bypass mode", () => {
