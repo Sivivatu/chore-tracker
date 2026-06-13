@@ -26,6 +26,7 @@ Create `.env.example` with the following variables:
 # Clerk
 VITE_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+CLERK_FRONTEND_API_URL=
 
 # Convex
 VITE_CONVEX_URL=
@@ -68,8 +69,10 @@ These steps should be completed manually in the local dev container before askin
 ### Convex setup
 
 1. Create or connect a Convex project.
-2. Configure Convex environment.
-3. Configure Clerk as the auth provider for Convex.
+2. Set `CLERK_FRONTEND_API_URL` to the Clerk JWT issuer URL in each existing
+   Convex deployment.
+3. Set `CLERK_FRONTEND_API_URL` as the Convex project default for Preview and
+   Production deployments.
 4. Confirm Convex deploy/dev command works locally.
 5. Add Convex URL to local environment.
 
@@ -132,6 +135,12 @@ Configure `CONVEX_DEPLOY_KEY` separately for Preview and Production in Vercel.
 This server-side secret is required for the build command to deploy Convex, and
 must not use a `VITE_` prefix. The per-environment key lets the same build
 command target the correct Convex deployment for each environment.
+
+`CLERK_FRONTEND_API_URL` must be configured in Convex as well as Vercel because
+`convex/auth.config.ts` is evaluated by the Convex deployment. Vercel
+environment variables are not copied into Convex automatically. Configure the
+existing production deployment directly, and set Convex project defaults for
+future Preview and Production deployments.
 
 ## Deployment checks
 
