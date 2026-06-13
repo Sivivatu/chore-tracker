@@ -25,7 +25,13 @@ export function AppProviders({ children }: PropsWithChildren) {
   }
 
   return (
-    <ClerkProvider publishableKey={clerkKey}>
+    <ClerkProvider
+      publishableKey={clerkKey}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      waitlistUrl="/waitlist"
+      afterSignOutUrl="/sign-in"
+    >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}
       </ConvexProviderWithClerk>

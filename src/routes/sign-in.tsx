@@ -9,7 +9,13 @@ export function SignInPage() {
       <div className="rounded-lg border border-ink/10 bg-white p-6 shadow-panel">
         <h1 className="mb-4 text-3xl font-black">Parent sign in</h1>
         {configured ? (
-          <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
+          <SignIn
+            routing="path"
+            path="/sign-in"
+            signUpUrl="/sign-up"
+            waitlistUrl="/waitlist"
+            fallbackRedirectUrl="/parent/dashboard"
+          />
         ) : (
           <p className="max-w-sm text-sm text-ink/65">
             Add `VITE_CLERK_PUBLISHABLE_KEY` to `.env.local` to enable Clerk sign in.
