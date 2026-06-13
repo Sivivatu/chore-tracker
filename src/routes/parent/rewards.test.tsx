@@ -102,11 +102,10 @@ vi.mock("@/lib/uploadthing", () => ({
       }
       return [
         {
-          serverData: {
-            imageUrl: "https://example.com/reward.png",
-            uploadThingKey: "reward-key",
-            imageName: files[0]?.name ?? "reward.png",
-          },
+          name: files[0]?.name ?? "reward.png",
+          key: "reward-key",
+          ufsUrl: "https://example.com/reward.png",
+          serverData: null,
         },
       ];
     }),

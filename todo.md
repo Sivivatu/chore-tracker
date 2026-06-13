@@ -8,4 +8,4 @@
 - [ ] update the settings page to allow the setting of names
 - [ ] do i want to add a behaviour page where bad behaviour can be tracked and it loses reward points?
 - [ ] add existing image file detection and minimisation processing
-- [ ]
+- [ ] enable UploadThing `awaitServerData`, return validated file metadata from `onUploadComplete`, and make the reward upload client consume the server-controlled response

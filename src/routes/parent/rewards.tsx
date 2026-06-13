@@ -31,11 +31,7 @@ type UploadedRewardImage = {
   key: string;
   ufsUrl?: string;
   url?: string;
-  serverData?: {
-    imageUrl?: string;
-    uploadThingKey?: string;
-    imageName?: string;
-  } | null;
+  serverData: null;
 };
 
 const emptyForm: RewardForm = {
@@ -101,9 +97,9 @@ function RewardImageUpload({
 function uploadVisualFromFile(uploadedFile: UploadedRewardImage) {
   return {
     type: "upload" as const,
-    imageUrl: uploadedFile.serverData?.imageUrl ?? uploadedFile.ufsUrl ?? uploadedFile.url ?? "",
-    uploadThingKey: uploadedFile.serverData?.uploadThingKey ?? uploadedFile.key,
-    imageName: uploadedFile.serverData?.imageName ?? uploadedFile.name,
+    imageUrl: uploadedFile.ufsUrl ?? uploadedFile.url ?? "",
+    uploadThingKey: uploadedFile.key,
+    imageName: uploadedFile.name,
   };
 }
 
