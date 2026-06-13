@@ -98,10 +98,21 @@ These steps should be completed manually in the local dev container before askin
 
 - Framework preset: Vite
 - Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm build`
+- Build command: `pnpm exec convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd "pnpm build"`
 - Output directory: `dist`
 
-These settings are captured in `vercel.json`.
+These settings are captured in `vercel.json`. The build command deploys the
+Convex schema and functions before running the Vite production build, and
+injects the deployed Convex URL into `VITE_CONVEX_URL`.
+
+Do not set `VITE_CONVEX_URL` manually in Vercel for Preview or Production. The
+Convex deploy command provides that value to the nested Vite build, and a
+manually configured Vercel value can override the deployment-specific URL.
+
+Configure `CONVEX_DEPLOY_KEY` separately for Preview and Production in Vercel.
+This server-side secret is required for the build command to deploy Convex, and
+must not use a `VITE_` prefix. The per-environment key lets the same build
+command target the correct Convex deployment for each environment.
 
 ## Deployment checks
 
