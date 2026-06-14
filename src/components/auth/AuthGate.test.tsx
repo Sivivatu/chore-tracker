@@ -12,6 +12,7 @@ const authState = vi.hoisted(() => ({
   isConvexAuthenticated: true,
   context: { household: { _id: "household-1" } } as object | null | undefined,
   createHousehold: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 vi.mock("@/app/providers", () => ({
@@ -23,6 +24,7 @@ vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({
     isLoaded: authState.isLoaded,
     isSignedIn: authState.isSignedIn,
+    signOut: authState.signOut,
   }),
 }));
 
@@ -50,6 +52,8 @@ describe("AuthGate", () => {
     authState.context = { household: { _id: "household-1" } };
     authState.createHousehold.mockReset();
     authState.createHousehold.mockResolvedValue({ householdId: "household-1" });
+    authState.signOut.mockReset();
+    authState.signOut.mockResolvedValue(undefined);
   });
 
   it("renders protected content when Clerk is configured and the user is signed in", () => {
@@ -114,7 +118,8 @@ describe("AuthGate", () => {
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
   });
 
-  it("reports when Convex cannot validate a signed-in Clerk session", () => {
+  it("clears a stale Clerk session when Convex cannot authenticate it", async () => {
+    const user = userEvent.setup();
     authState.isConvexAuthenticated = false;
 
     render(
@@ -123,7 +128,9 @@ describe("AuthGate", () => {
       </AuthGate>,
     );
 
-    expect(screen.getByText("Unable to verify sign in")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Return to sign in" }));
+
+    expect(authState.signOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" });
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
   });
 
