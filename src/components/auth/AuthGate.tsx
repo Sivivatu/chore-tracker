@@ -42,8 +42,9 @@ function ClerkAuthGate({ children }: PropsWithChildren) {
         <div className="rounded-lg border border-ink/10 bg-white p-6 shadow-panel">
           <h1 className="mb-3 text-3xl font-black">Unable to verify sign in</h1>
           <p className="max-w-md text-sm text-ink/65">
-            This session is no longer valid. This can happen when the Clerk account has been deleted
-            or revoked.
+            Clerk signed you in, but the application backend could not verify the session. Return to
+            sign in to start a fresh session. If this continues, the Clerk and Convex authentication
+            settings need attention.
           </p>
           <Button
             className="mt-5"

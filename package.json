@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "format": "prettier --check .",
+    "auth:verify": "node scripts/verify-auth.mjs --env-file .env.local",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },

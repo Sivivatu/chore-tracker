@@ -130,6 +130,9 @@ describe("AuthGate", () => {
 
     await user.click(screen.getByRole("button", { name: "Return to sign in" }));
 
+    expect(
+      screen.getByText(/application backend could not verify the session/i),
+    ).toBeInTheDocument();
     expect(authState.signOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" });
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
   });
