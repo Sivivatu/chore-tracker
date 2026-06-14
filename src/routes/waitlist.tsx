@@ -1,8 +1,8 @@
 import { Waitlist } from "@clerk/clerk-react";
-import { hasClerkConfig } from "@/app/providers";
+import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 
 export function WaitlistPage() {
-  const configured = hasClerkConfig();
+  const configured = hasClerkConfig() && !isE2EAuthBypass();
 
   return (
     <section className="mx-auto grid min-h-[80vh] max-w-5xl place-items-center px-4 py-10">
