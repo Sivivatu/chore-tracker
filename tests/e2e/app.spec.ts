@@ -34,7 +34,7 @@ test("child mode locks parent routine editing until parent PIN is entered", asyn
 
 test("parent can view dashboard and approval queue", async ({ page }) => {
   await page.goto("/parent/dashboard");
-  await expect(page.getByRole("heading", { name: /today for/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /this week for/i })).toBeVisible();
   await page.getByRole("link", { name: /approvals/i }).click();
   await expect(page.getByRole("heading", { name: "Submitted routines" })).toBeVisible();
   await expect(page.getByRole("button", { name: /approve/i })).toBeVisible();

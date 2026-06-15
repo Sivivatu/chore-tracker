@@ -3,9 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { StepIllustration } from "@/components/child/StepIllustration";
 import { getCalendarSeries, getCompletionPercentage, getDashboardSummary } from "@/lib/dashboard";
 import {
+  addDaysToDateKey,
   formatBritishDateLabel,
   formatBritishDateTime,
+  formatBritishWeekRange,
   getRecentDateKeys,
+  getWeekDateKeys,
+  getWeekStartDateKey,
   isWithinPause,
   toDateKey,
 } from "@/lib/dates";
@@ -35,6 +39,7 @@ describe("remaining helper branches", () => {
           createdByParentId: "parent-1",
         },
       ],
+      "2026-05-31",
     );
     expect(series).toHaveLength(7);
     expect(series.at(-1)).toMatchObject({ paused: 1 });
@@ -48,12 +53,25 @@ describe("remaining helper branches", () => {
     ]);
     expect(formatBritishDateLabel("2026-05-31", "2026-05-30")).toBe("Sun 31 May");
     expect(formatBritishDateLabel("2027-01-01", "2026-12-31")).toBe("Fri 1 Jan 2027");
+    expect(formatBritishDateLabel("invalid")).toBe("invalid");
     expect(formatBritishDateTime("2026-05-31T08:11:00.000Z", new Date("2026-01-01"))).toBe(
       "31-05 08:11",
     );
     expect(formatBritishDateTime("2027-01-02T09:12:00.000Z", new Date("2026-01-01"))).toBe(
       "02-01-27 09:12",
     );
+    expect(getWeekStartDateKey("2026-06-14")).toBe("2026-06-08");
+    expect(getWeekDateKeys("2026-06-08")).toEqual([
+      "2026-06-08",
+      "2026-06-09",
+      "2026-06-10",
+      "2026-06-11",
+      "2026-06-12",
+      "2026-06-13",
+      "2026-06-14",
+    ]);
+    expect(addDaysToDateKey("2026-06-08", -7)).toBe("2026-06-01");
+    expect(formatBritishWeekRange("2026-06-08", "2026-06-14")).toBe("8 Jun to 14 Jun 2026");
     expect(isWithinPause("2026-05-20", [])).toBe(false);
   });
 

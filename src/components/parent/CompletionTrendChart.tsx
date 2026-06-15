@@ -1,22 +1,17 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { getCalendarSeries } from "@/lib/dashboard";
-import { demoRoutineDate } from "@/lib/demo-date";
+import type { DashboardDay } from "@/components/parent/CalendarCompletionView";
+import { formatBritishDateLabel } from "@/lib/dates";
 
-export function CompletionTrendChart() {
-  const context = useQuery(api.households.currentContext);
-  const routineInstances = useQuery(
-    api.routines.listTodayWithSteps,
-    context?.household ? { householdId: context.household._id, date: demoRoutineDate } : "skip",
-  );
-  const holidayPauses = useQuery(
-    api.holidayPauses.list,
-    context?.household ? { householdId: context.household._id } : "skip",
-  );
-  const pauses = (holidayPauses ?? []).map((pause) => ({ id: pause._id, ...pause }));
-  const data = getCalendarSeries(routineInstances ?? [], pauses);
+type Props = {
+  days: DashboardDay[];
+  weekEnd: string;
+};
 
+export function CompletionTrendChart({ days, weekEnd }: Props) {
+  const data = days.map((day) => ({
+    ...day,
+    label: formatBritishDateLabel(day.date, weekEnd),
+  }));
   return (
     <section
       className="h-80 w-full max-w-full overflow-hidden rounded-lg border border-ink/10 bg-white p-4 shadow-panel sm:h-72 sm:p-5"
