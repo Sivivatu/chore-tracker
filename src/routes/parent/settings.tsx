@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Heart, Rocket, Smile, Sparkles, Star } from "lucide-react";
+import { Copy, Heart, Rocket, Smile, Sparkles, Star, UserPlus, X } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +18,7 @@ const avatarPresets = [
 
 export function ParentSettingsPage() {
   const [pin, setPin] = useState("");
+  const [pinConfirmation, setPinConfirmation] = useState("");
   const [pinStatusMessage, setPinStatusMessage] = useState("");
   const [pinError, setPinError] = useState("");
   const context = useQuery(api.households.currentContext);
@@ -34,7 +35,13 @@ export function ParentSettingsPage() {
     api.chores.getSettingsForHousehold,
     context?.household ? { householdId: context.household._id } : "skip",
   );
+  const invitations = useQuery(
+    api.parentInvitations.listForHousehold,
+    context?.household ? { householdId: context.household._id } : "skip",
+  );
   const setParentLockPin = useMutation(api.households.setParentLockPin);
+  const createInvitation = useMutation(api.parentInvitations.create);
+  const revokeInvitation = useMutation(api.parentInvitations.revoke);
   const upsertChoreSettings = useMutation(api.chores.upsertSettings);
 
   async function saveParentPin(event: React.FormEvent<HTMLFormElement>) {
@@ -47,11 +54,16 @@ export function ParentSettingsPage() {
       setPinError("Use a 4 to 8 digit parent PIN.");
       return;
     }
+    if (pin !== pinConfirmation) {
+      setPinError("Parent PINs do not match.");
+      return;
+    }
 
     try {
       await setParentLockPin({ householdId: context.household._id, pin });
       setPin("");
-      setPinStatusMessage("Parent lock PIN saved.");
+      setPinConfirmation("");
+      setPinStatusMessage("Parent PIN reset.");
     } catch (error) {
       setPinError(error instanceof Error ? error.message : "Could not save parent lock PIN.");
     }
@@ -64,6 +76,15 @@ export function ParentSettingsPage() {
         <h1 className="mt-2 text-3xl font-black">{context?.household.name ?? "Household"}</h1>
         <p className="mt-4 text-sm text-ink/60">Parent: {context?.parent.name ?? "Loading"}</p>
         <p className="text-sm text-ink/60">Child profile: {primaryChild?.name ?? "Loading"}</p>
+        {context?.household ? (
+          <ParentAccessForm
+            householdId={context.household._id}
+            parents={context.parents ?? [context.parent]}
+            invitations={invitations ?? []}
+            createInvitation={createInvitation}
+            revokeInvitation={revokeInvitation}
+          />
+        ) : null}
         {context?.household ? (
           <HouseholdIdentityForm
             key={context.household._id}
@@ -87,7 +108,7 @@ export function ParentSettingsPage() {
           />
         ) : null}
         <form onSubmit={saveParentPin} className="mt-6 rounded-md bg-paper p-4">
-          <p className="text-base font-black">Parent lock PIN</p>
+          <p className="text-base font-black">Reset parent PIN</p>
           <p className="mt-1 text-sm text-ink/60">
             {parentLockStatus?.configured
               ? "A parent PIN is set for leaving child mode."
@@ -113,6 +134,21 @@ export function ParentSettingsPage() {
                 .join(" ") || undefined
             }
           />
+          <label htmlFor="parent-lock-pin-confirmation" className="mt-4 block text-sm font-bold">
+            Confirm new parent PIN
+          </label>
+          <input
+            id="parent-lock-pin-confirmation"
+            value={pinConfirmation}
+            inputMode="numeric"
+            maxLength={8}
+            onChange={(event) => {
+              setPinConfirmation(event.target.value);
+              setPinError("");
+              setPinStatusMessage("");
+            }}
+            className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+          />
           {pinError ? (
             <p id="parent-lock-error" className="mt-2 text-sm font-bold text-rose-700">
               {pinError}
@@ -124,7 +160,7 @@ export function ParentSettingsPage() {
             </p>
           ) : null}
           <Button className="mt-4" type="submit" disabled={!context?.household || !pin}>
-            Save parent PIN
+            Reset parent PIN
           </Button>
         </form>
       </Card>
@@ -140,6 +176,102 @@ export function ParentSettingsPage() {
         </ol>
       </Card>
     </section>
+  );
+}
+
+function ParentAccessForm({
+  householdId,
+  parents,
+  invitations,
+  createInvitation,
+  revokeInvitation,
+}: {
+  householdId: Id<"households">;
+  parents: Array<{ _id: Id<"parents">; name: string }>;
+  invitations: Array<{
+    _id: Id<"parentInvitations">;
+    expiresAt: string;
+  }>;
+  createInvitation: ReturnType<typeof useMutation<typeof api.parentInvitations.create>>;
+  revokeInvitation: ReturnType<typeof useMutation<typeof api.parentInvitations.revoke>>;
+}) {
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function create() {
+    setError("");
+    setStatusMessage("");
+    try {
+      const invitation = await createInvitation({ householdId });
+      const url = `${window.location.origin}/invite/${invitation.token}`;
+      setInviteUrl(url);
+      await navigator.clipboard?.writeText(url);
+      setStatusMessage("Invitation link created and copied.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not create invitation.");
+    }
+  }
+
+  async function copy() {
+    await navigator.clipboard?.writeText(inviteUrl);
+    setStatusMessage("Invitation link copied.");
+  }
+
+  async function revoke(invitationId: Id<"parentInvitations">) {
+    setError("");
+    try {
+      await revokeInvitation({ invitationId });
+      setInviteUrl("");
+      setStatusMessage("Invitation revoked.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not revoke invitation.");
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-md bg-paper p-4">
+      <p className="text-base font-black">Parent access</p>
+      <ul className="mt-3 grid gap-2">
+        {parents.map((parent) => (
+          <li key={parent._id} className="rounded-md bg-white px-3 py-2 text-sm font-semibold">
+            {parent.name}
+          </li>
+        ))}
+      </ul>
+      {inviteUrl ? (
+        <div className="mt-4 flex gap-2">
+          <input
+            aria-label="Parent invitation link"
+            readOnly
+            value={inviteUrl}
+            className="h-11 min-w-0 flex-1 rounded-md border border-ink/20 bg-white px-3 text-sm"
+          />
+          <Button type="button" onClick={() => void copy()}>
+            <Copy aria-hidden className="h-4 w-4" /> Copy
+          </Button>
+        </div>
+      ) : null}
+      {invitations.map((invitation) => (
+        <div key={invitation._id} className="mt-3 flex items-center justify-between gap-3 text-sm">
+          <span>Invite expires {formatBritishDateTime(invitation.expiresAt)}</span>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 font-bold text-rose-700"
+            onClick={() => void revoke(invitation._id)}
+          >
+            <X aria-hidden className="h-4 w-4" /> Revoke
+          </button>
+        </div>
+      ))}
+      {parents.length < 2 && invitations.length === 0 ? (
+        <Button className="mt-4" type="button" onClick={() => void create()}>
+          <UserPlus aria-hidden className="h-4 w-4" /> Invite another parent
+        </Button>
+      ) : null}
+      {error ? <p className="mt-2 text-sm font-bold text-rose-700">{error}</p> : null}
+      {statusMessage ? <p className="mt-2 text-sm font-bold text-teal">{statusMessage}</p> : null}
+    </div>
   );
 }
 
@@ -194,8 +326,8 @@ function ChoreSettingsForm({
       <p className="mt-1 text-sm text-ink/60">
         Chore rewards use base points multiplied by these values.
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <label htmlFor="daily-chore-multiplier" className="grid gap-2 text-sm font-bold">
+      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-3">
+        <label htmlFor="daily-chore-multiplier" className="grid min-w-0 gap-2 text-sm font-bold">
           Daily
           <input
             id="daily-chore-multiplier"
@@ -207,10 +339,10 @@ function ChoreSettingsForm({
               setError("");
               setStatusMessage("");
             }}
-            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+            className="h-12 min-w-0 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
           />
         </label>
-        <label htmlFor="weekly-chore-multiplier" className="grid gap-2 text-sm font-bold">
+        <label htmlFor="weekly-chore-multiplier" className="grid min-w-0 gap-2 text-sm font-bold">
           Weekly
           <input
             id="weekly-chore-multiplier"
@@ -222,10 +354,10 @@ function ChoreSettingsForm({
               setError("");
               setStatusMessage("");
             }}
-            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+            className="h-12 min-w-0 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
           />
         </label>
-        <label htmlFor="monthly-chore-multiplier" className="grid gap-2 text-sm font-bold">
+        <label htmlFor="monthly-chore-multiplier" className="grid min-w-0 gap-2 text-sm font-bold">
           Monthly
           <input
             id="monthly-chore-multiplier"
@@ -237,7 +369,7 @@ function ChoreSettingsForm({
               setError("");
               setStatusMessage("");
             }}
-            className="h-12 rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+            className="h-12 min-w-0 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
           />
         </label>
       </div>

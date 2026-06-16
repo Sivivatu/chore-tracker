@@ -62,11 +62,16 @@ export const currentContext = query({
       .query("children")
       .withIndex("by_household", (query) => query.eq("householdId", parent.householdId))
       .take(20);
+    const parents = await ctx.db
+      .query("parents")
+      .withIndex("by_household", (query) => query.eq("householdId", parent.householdId))
+      .take(2);
     const publicChildren = children.map(publicChild).filter((child) => child !== null);
 
     return {
       household: publicHousehold(household),
       parent,
+      parents,
       child: publicChildren.at(0) ?? null,
       children: publicChildren,
     };
@@ -78,7 +83,6 @@ export const createInitialHousehold = mutation({
     householdName: v.string(),
     parentName: v.string(),
     childName: v.string(),
-    childPin: v.string(),
     parentPin: v.string(),
   },
   handler: async (ctx, args) => {
@@ -87,7 +91,7 @@ export const createInitialHousehold = mutation({
 
     const existingParent = await ctx.db
       .query("parents")
-      .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", identity.subject))
+      .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", identity.tokenIdentifier))
       .unique();
     if (existingParent) {
       return { householdId: existingParent.householdId, parentId: existingParent._id };
@@ -96,12 +100,8 @@ export const createInitialHousehold = mutation({
     const householdName = normaliseIdentityName(args.householdName, "Household name");
     const parentName = normaliseIdentityName(args.parentName, "Parent name");
     const childName = normaliseIdentityName(args.childName, "Child name");
-    const childPin = args.childPin.trim();
     const parentPin = args.parentPin.trim();
 
-    if (!/^\d{4}$/.test(childPin)) {
-      throw new Error("Child PIN must be exactly 4 digits");
-    }
     if (!/^\d{4,8}$/.test(parentPin)) {
       throw new Error("Parent PIN must be 4 to 8 digits");
     }
@@ -116,13 +116,12 @@ export const createInitialHousehold = mutation({
 
     const parentId = await ctx.db.insert("parents", {
       householdId,
-      clerkUserId: identity.subject,
+      clerkUserId: identity.tokenIdentifier,
       name: parentName,
     });
     const childId = await ctx.db.insert("children", {
       householdId,
       name: childName,
-      pinHash: await hashPin(childPin, householdId),
       avatarColour: "#ffcf5a",
       avatarPreset: "star",
       pointsBalance: 0,
@@ -212,7 +211,7 @@ export const parentLockStatus = query({
 export const setParentLockPin = mutation({
   args: { householdId: v.id("households"), pin: v.string() },
   handler: async (ctx, args) => {
-    await assertHouseholdAccess(ctx, args.householdId);
+    const parent = await assertHouseholdAccess(ctx, args.householdId);
     const pin = args.pin.trim();
     if (!/^\d{4,8}$/.test(pin)) {
       throw new Error("Parent lock PIN must be 4 to 8 digits");
@@ -220,6 +219,12 @@ export const setParentLockPin = mutation({
 
     await ctx.db.patch(args.householdId, {
       parentLockPinHash: await hashPin(pin, args.householdId),
+    });
+    await ctx.db.insert("auditEvents", {
+      householdId: args.householdId,
+      actorId: parent._id,
+      action: "Parent PIN reset",
+      createdAt: new Date().toISOString(),
     });
     return { configured: true };
   },

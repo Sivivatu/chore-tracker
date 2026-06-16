@@ -131,7 +131,6 @@ async function insertDemoHousehold(
   const childId = await ctx.db.insert("children", {
     householdId,
     name: "Maya",
-    pinHash: await hashPin("1234", householdId),
     avatarColour: "#ffcf5a",
     avatarPreset: "star",
     pointsBalance: 42,

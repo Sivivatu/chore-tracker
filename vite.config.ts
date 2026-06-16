@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     test: {
-      include: ["src/**/*.test.{ts,tsx}"],
+      include: ["src/**/*.test.{ts,tsx}", "convex/**/*.test.ts"],
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/test/setup.ts",
@@ -90,7 +90,7 @@ export default defineConfig(({ mode }) => {
           lines: 80,
           statements: 80,
         },
-        exclude: ["convex/_generated/**", "src/main.tsx", "src/routeTree.gen.ts", "src/test/**"],
+        exclude: ["convex/**", "src/main.tsx", "src/routeTree.gen.ts", "src/test/**"],
       },
     },
   };

@@ -22,13 +22,26 @@ export async function requireParent(ctx: Ctx) {
 
 export async function currentParent(ctx: Ctx) {
   const identity = await ctx.auth.getUserIdentity();
-  const clerkUserId = identity?.subject ?? getE2EClerkUserId();
+  const clerkUserId = identity?.tokenIdentifier ?? getE2EClerkUserId();
   if (!clerkUserId) throw new Error("Unauthenticated");
 
-  return await ctx.db
+  const parent = await ctx.db
     .query("parents")
     .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", clerkUserId))
     .unique();
+  if (parent || !identity || identity.subject === clerkUserId) return parent;
+
+  return await ctx.db
+    .query("parents")
+    .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", identity.subject))
+    .unique();
+}
+
+export async function currentClerkUserId(ctx: Ctx) {
+  const identity = await ctx.auth.getUserIdentity();
+  const clerkUserId = identity?.tokenIdentifier ?? getE2EClerkUserId();
+  if (!clerkUserId) throw new Error("Unauthenticated");
+  return clerkUserId;
 }
 
 export async function assertHouseholdAccess(ctx: Ctx, householdId: Id<"households">) {
