@@ -1,12 +1,13 @@
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { env } from "./_generated/server";
 
 type Ctx = QueryCtx | MutationCtx;
 
 function getE2EClerkUserId() {
-  if (process.env.E2E_AUTH_BYPASS !== "true") return null;
+  if (env.E2E_AUTH_BYPASS !== "true") return null;
 
-  const clerkUserId = process.env.E2E_CLERK_USER_ID;
+  const clerkUserId = env.E2E_CLERK_USER_ID;
   if (!clerkUserId) {
     throw new Error("E2E auth bypass requires E2E_CLERK_USER_ID");
   }
