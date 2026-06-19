@@ -42,8 +42,9 @@ function ClerkAuthGate({ children }: PropsWithChildren) {
         <div className="rounded-lg border border-ink/10 bg-white p-6 shadow-panel">
           <h1 className="mb-3 text-3xl font-black">Unable to verify sign in</h1>
           <p className="max-w-md text-sm text-ink/65">
-            This session is no longer valid. This can happen when the Clerk account has been deleted
-            or revoked.
+            Clerk signed you in, but the application backend could not verify the session. Return to
+            sign in to start a fresh session. If this continues, the Clerk and Convex authentication
+            settings need attention.
           </p>
           <Button
             className="mt-5"
@@ -87,7 +88,6 @@ function HouseholdSetupForm() {
   const [householdName, setHouseholdName] = useState("");
   const [parentName, setParentName] = useState("");
   const [childName, setChildName] = useState("");
-  const [childPin, setChildPin] = useState("");
   const [parentPin, setParentPin] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,10 +98,6 @@ function HouseholdSetupForm() {
 
     if (!householdName.trim() || !parentName.trim() || !childName.trim()) {
       setError("Enter a household, parent, and child name.");
-      return;
-    }
-    if (!/^\d{4}$/.test(childPin)) {
-      setError("Use exactly 4 digits for the child PIN.");
       return;
     }
     if (!/^\d{4,8}$/.test(parentPin)) {
@@ -115,7 +111,6 @@ function HouseholdSetupForm() {
         householdName,
         parentName,
         childName,
-        childPin,
         parentPin,
       });
     } catch (error) {
@@ -174,23 +169,6 @@ function HouseholdSetupForm() {
               autoComplete="off"
             />
           </label>
-          <div>
-            <label htmlFor="setup-child-pin" className="text-sm font-bold">
-              Child PIN
-            </label>
-            <input
-              id="setup-child-pin"
-              value={childPin}
-              inputMode="numeric"
-              maxLength={4}
-              onChange={(event) => setChildPin(event.target.value)}
-              className={inputClass}
-              aria-describedby="child-pin-help"
-            />
-            <span id="child-pin-help" className="mt-1 block text-xs font-normal text-ink/60">
-              Exactly 4 digits for entering child mode.
-            </span>
-          </div>
           <div>
             <label htmlFor="setup-parent-pin" className="text-sm font-bold">
               Parent PIN

@@ -12,6 +12,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { SignInPage } from "@/routes/sign-in";
 import { SignUpPage } from "@/routes/sign-up";
 import { WaitlistPage } from "@/routes/waitlist";
+import { ParentInvitePage } from "@/routes/invite";
 import { ParentDashboardPage } from "@/routes/parent/dashboard";
 import { ParentRoutinesPage } from "@/routes/parent/routines";
 import { ParentApprovalsPage } from "@/routes/parent/approvals";
@@ -69,6 +70,12 @@ const waitlistRoute = createRoute({
   component: WaitlistPage,
 });
 
+const inviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/invite/$token",
+  component: ParentInvitePage,
+});
+
 const parentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/parent",
@@ -98,6 +105,7 @@ const routeTree = rootRoute.addChildren([
   signUpRoute,
   signUpCallbackRoute,
   waitlistRoute,
+  inviteRoute,
   parentRoute.addChildren([
     createRoute({
       getParentRoute: () => parentRoute,

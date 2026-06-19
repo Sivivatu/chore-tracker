@@ -14,6 +14,7 @@ export function SignInPage() {
             path="/sign-in"
             signUpUrl="/sign-up"
             waitlistUrl="/waitlist"
+            oauthFlow="redirect"
             fallbackRedirectUrl="/parent/dashboard"
           />
         ) : (

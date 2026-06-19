@@ -32,17 +32,30 @@ export default defineSchema({
     householdId: v.id("households"),
     clerkUserId: v.string(),
     name: v.string(),
-  }).index("by_clerk_user", ["clerkUserId"]),
+  })
+    .index("by_clerk_user", ["clerkUserId"])
+    .index("by_household", ["householdId"]),
+  parentInvitations: defineTable({
+    householdId: v.id("households"),
+    tokenHash: v.string(),
+    createdByParentId: v.id("parents"),
+    createdAt: v.string(),
+    expiresAt: v.string(),
+    acceptedAt: v.optional(v.string()),
+    acceptedByParentId: v.optional(v.id("parents")),
+    revokedAt: v.optional(v.string()),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_household", ["householdId"]),
   children: defineTable({
     householdId: v.id("households"),
     name: v.string(),
-    pinHash: v.string(),
+    // Deprecated: retained only so existing Convex rows from the old child-PIN flow validate.
+    pinHash: v.optional(v.string()),
     avatarColour: v.string(),
     avatarPreset: v.optional(v.string()),
     pointsBalance: v.number(),
-  })
-    .index("by_household", ["householdId"])
-    .index("by_household_and_pinHash", ["householdId", "pinHash"]),
+  }).index("by_household", ["householdId"]),
   routineTemplates: defineTable({
     householdId: v.id("households"),
     name: v.string(),
@@ -113,7 +126,9 @@ export default defineSchema({
     approvedByParentId: v.optional(v.id("parents")),
     rejectedAt: v.optional(v.string()),
     rejectionNote: v.optional(v.string()),
-  }).index("by_household_date", ["householdId", "date"]),
+  })
+    .index("by_household_date", ["householdId", "date"])
+    .index("by_household_and_status", ["householdId", "status"]),
   stepInstances: defineTable({
     householdId: v.id("households"),
     childId: v.id("children"),
@@ -169,6 +184,8 @@ export default defineSchema({
     rejectionNote: v.optional(v.string()),
   })
     .index("by_household", ["householdId"])
+    .index("by_household_and_status", ["householdId", "status"])
+    .index("by_household_and_approvedAt", ["householdId", "approvedAt"])
     .index("by_child_and_chore_and_period", ["childId", "choreId", "periodKey"]),
   choreSettings: defineTable({
     householdId: v.id("households"),

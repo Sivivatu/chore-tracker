@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "format": "prettier --check .",
+    "auth:verify": "node scripts/verify-auth.mjs --env-file .env.local",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },
@@ -23,7 +24,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "^1.31.0",
+    "convex": "^1.41.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -32,6 +33,7 @@
     "uploadthing": "^7.7.4"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.2.2",
@@ -43,6 +45,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.15",
+    "convex-test": "^0.0.53",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^27.3.0",

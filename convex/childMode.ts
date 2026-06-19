@@ -1,32 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { hashPin, verifyPin } from "./pins";
-
-export const unlock = query({
-  args: { householdId: v.id("households"), pin: v.string() },
-  handler: async (ctx, args) => {
-    const hashedPin = await hashPin(args.pin, args.householdId);
-    const hashedMatches = await ctx.db
-      .query("children")
-      .withIndex("by_household_and_pinHash", (query) =>
-        query.eq("householdId", args.householdId).eq("pinHash", hashedPin),
-      )
-      .take(1);
-    const child =
-      hashedMatches.at(0) ??
-      (
-        await ctx.db
-          .query("children")
-          .withIndex("by_household_and_pinHash", (query) =>
-            query.eq("householdId", args.householdId).eq("pinHash", args.pin.trim()),
-          )
-          .take(1)
-      ).at(0);
-
-    if (!child || !(await verifyPin(args.pin, child.pinHash, args.householdId))) return null;
-    return { childId: child._id, householdId: child.householdId, name: child.name };
-  },
-});
 
 export const submitRoutine = mutation({
   args: {

@@ -8,6 +8,8 @@ const convexState = vi.hoisted(() => ({
   updateHouseholdIdentity: vi.fn(),
   updateChildIdentity: vi.fn(),
   upsertChoreSettings: vi.fn(),
+  createInvitation: vi.fn(),
+  revokeInvitation: vi.fn(),
   context: {
     household: { _id: "household-1", name: "The Parker Household" },
     parent: {
@@ -16,6 +18,14 @@ const convexState = vi.hoisted(() => ({
       clerkUserId: "clerk-user-1",
       name: "Alex",
     },
+    parents: [
+      {
+        _id: "parent-1",
+        householdId: "household-1",
+        clerkUserId: "clerk-user-1",
+        name: "Alex",
+      },
+    ],
     child: {
       _id: "child-1",
       householdId: "household-1",
@@ -44,6 +54,7 @@ const convexState = vi.hoisted(() => ({
       createdAt: "2026-05-31T08:00:00.000Z",
     },
   ],
+  invitations: [] as Array<{ _id: string; expiresAt: string }>,
 }));
 
 vi.mock("convex/react", () => ({
@@ -53,6 +64,8 @@ vi.mock("convex/react", () => ({
     }
     if (mutation._name?.includes("updateChildIdentity")) return convexState.updateChildIdentity;
     if (mutation._name?.includes("upsertSettings")) return convexState.upsertChoreSettings;
+    if (mutation._name?.includes("parentInvitations.create")) return convexState.createInvitation;
+    if (mutation._name?.includes("parentInvitations.revoke")) return convexState.revokeInvitation;
     return convexState.setParentLockPin;
   },
   useQuery: (query: { _name?: string }) => {
@@ -60,6 +73,7 @@ vi.mock("convex/react", () => ({
     if (query._name?.includes("parentLockStatus")) return convexState.parentLockStatus;
     if (query._name?.includes("getSettingsForHousehold")) return convexState.choreSettings;
     if (query._name?.includes("auditEvents")) return convexState.auditEvents;
+    if (query._name?.includes("parentInvitations.list")) return convexState.invitations;
     return undefined;
   },
 }));
@@ -78,6 +92,11 @@ vi.mock("../../../convex/_generated/api", () => ({
       getSettingsForHousehold: { _name: "getSettingsForHousehold" },
       upsertSettings: { _name: "upsertSettings" },
     },
+    parentInvitations: {
+      listForHousehold: { _name: "parentInvitations.list" },
+      create: { _name: "parentInvitations.create" },
+      revoke: { _name: "parentInvitations.revoke" },
+    },
   },
 }));
 
@@ -87,10 +106,17 @@ describe("ParentSettingsPage", () => {
     convexState.updateHouseholdIdentity.mockReset();
     convexState.updateChildIdentity.mockReset();
     convexState.upsertChoreSettings.mockReset();
+    convexState.createInvitation.mockReset();
+    convexState.revokeInvitation.mockReset();
     convexState.setParentLockPin.mockResolvedValue({ configured: true });
     convexState.updateHouseholdIdentity.mockResolvedValue({});
     convexState.updateChildIdentity.mockResolvedValue({});
     convexState.upsertChoreSettings.mockResolvedValue({});
+    convexState.createInvitation.mockResolvedValue({
+      token: "a".repeat(64),
+      expiresAt: "2026-06-22T00:00:00.000Z",
+    });
+    convexState.revokeInvitation.mockResolvedValue(null);
   });
 
   it("renders current household and child identity from Convex context", () => {
@@ -160,14 +186,15 @@ describe("ParentSettingsPage", () => {
     const user = userEvent.setup();
     render(<ParentSettingsPage />);
 
-    await user.type(screen.getByLabelText(/new parent pin/i), "8642");
-    await user.click(screen.getByRole("button", { name: /save parent pin/i }));
+    await user.type(screen.getByLabelText(/^new parent pin$/i), "8642");
+    await user.type(screen.getByLabelText(/confirm new parent pin/i), "8642");
+    await user.click(screen.getByRole("button", { name: /reset parent pin/i }));
 
     expect(convexState.setParentLockPin).toHaveBeenCalledWith({
       householdId: "household-1",
       pin: "8642",
     });
-    expect(await screen.findByText("Parent lock PIN saved.")).toBeInTheDocument();
+    expect(await screen.findByText("Parent PIN reset.")).toBeInTheDocument();
   });
 
   it("shows backend failures independently for identity forms", async () => {
@@ -187,8 +214,8 @@ describe("ParentSettingsPage", () => {
     const user = userEvent.setup();
     render(<ParentSettingsPage />);
 
-    await user.type(screen.getByLabelText(/new parent pin/i), "12");
-    await user.click(screen.getByRole("button", { name: /save parent pin/i }));
+    await user.type(screen.getByLabelText(/^new parent pin$/i), "12");
+    await user.click(screen.getByRole("button", { name: /reset parent pin/i }));
 
     expect(screen.getByText("Use a 4 to 8 digit parent PIN.")).toBeInTheDocument();
     expect(convexState.setParentLockPin).not.toHaveBeenCalled();
@@ -199,10 +226,35 @@ describe("ParentSettingsPage", () => {
     const user = userEvent.setup();
     render(<ParentSettingsPage />);
 
-    await user.type(screen.getByLabelText(/new parent pin/i), "8642");
-    await user.click(screen.getByRole("button", { name: /save parent pin/i }));
+    await user.type(screen.getByLabelText(/^new parent pin$/i), "8642");
+    await user.type(screen.getByLabelText(/confirm new parent pin/i), "8642");
+    await user.click(screen.getByRole("button", { name: /reset parent pin/i }));
 
     expect(await screen.findByText("PIN save failed")).toBeInTheDocument();
+  });
+
+  it("requires matching parent PIN confirmation", async () => {
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.type(screen.getByLabelText(/^new parent pin$/i), "8642");
+    await user.type(screen.getByLabelText(/confirm new parent pin/i), "2468");
+    await user.click(screen.getByRole("button", { name: /reset parent pin/i }));
+
+    expect(screen.getByText("Parent PINs do not match.")).toBeInTheDocument();
+    expect(convexState.setParentLockPin).not.toHaveBeenCalled();
+  });
+
+  it("creates a shareable invitation for a second parent", async () => {
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.click(screen.getByRole("button", { name: /invite another parent/i }));
+
+    expect(convexState.createInvitation).toHaveBeenCalledWith({ householdId: "household-1" });
+    expect(await screen.findByLabelText(/parent invitation link/i)).toHaveValue(
+      `${window.location.origin}/invite/${"a".repeat(64)}`,
+    );
   });
 
   it("saves a custom avatar colour", async () => {
@@ -233,6 +285,19 @@ describe("ParentSettingsPage", () => {
       monthlyMultiplier: 10,
     });
     expect(await screen.findByText("Chore multipliers saved.")).toBeInTheDocument();
+  });
+
+  it("keeps chore multiplier inputs contained within their grid columns", () => {
+    render(<ParentSettingsPage />);
+
+    for (const input of [
+      screen.getByLabelText(/daily/i),
+      screen.getByLabelText(/weekly/i),
+      screen.getByLabelText(/monthly/i),
+    ]) {
+      expect(input).toHaveClass("min-w-0", "w-full");
+      expect(input.parentElement).toHaveClass("min-w-0");
+    }
   });
 
   it("validates chore reward multipliers", async () => {

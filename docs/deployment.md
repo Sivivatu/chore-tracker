@@ -26,7 +26,7 @@ Create `.env.example` with the following variables:
 # Clerk
 VITE_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
-CLERK_FRONTEND_API_URL=
+CLERK_JWT_ISSUER_DOMAIN=
 
 # Convex
 VITE_CONVEX_URL=
@@ -69,9 +69,9 @@ These steps should be completed manually in the local dev container before askin
 ### Convex setup
 
 1. Create or connect a Convex project.
-2. Set `CLERK_FRONTEND_API_URL` to the Clerk JWT issuer URL in each existing
+2. Set `CLERK_JWT_ISSUER_DOMAIN` to the Clerk Frontend API URL in each existing
    Convex deployment.
-3. Set `CLERK_FRONTEND_API_URL` as the Convex project default for Preview and
+3. Set `CLERK_JWT_ISSUER_DOMAIN` as the Convex project default for Preview and
    Production deployments.
 4. Confirm Convex deploy/dev command works locally.
 5. Add Convex URL to local environment.
@@ -116,11 +116,16 @@ This server-side secret is required for the build command to deploy Convex, and
 must not use a `VITE_` prefix. The per-environment key lets the same build
 command target the correct Convex deployment for each environment.
 
-`CLERK_FRONTEND_API_URL` must be configured in Convex as well as Vercel because
+`CLERK_JWT_ISSUER_DOMAIN` must be configured in Convex as well as Vercel because
 `convex/auth.config.ts` is evaluated by the Convex deployment. Vercel
 environment variables are not copied into Convex automatically. Configure the
 existing production deployment directly, and set Convex project defaults for
 future Preview and Production deployments.
+
+Activate Clerk's Convex integration in each Clerk instance before deployment.
+The application can verify an instance with `pnpm auth:verify`; this checks that
+the publishable key and issuer match, the `convex` JWT template has audience
+`convex`, and the Clerk waitlist API is accessible.
 
 ## Deployment checks
 

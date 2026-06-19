@@ -130,6 +130,9 @@ describe("AuthGate", () => {
 
     await user.click(screen.getByRole("button", { name: "Return to sign in" }));
 
+    expect(
+      screen.getByText(/application backend could not verify the session/i),
+    ).toBeInTheDocument();
     expect(authState.signOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" });
     expect(screen.queryByText("Protected dashboard")).not.toBeInTheDocument();
   });
@@ -162,7 +165,6 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Household name"), "The Example Household");
     await user.type(screen.getByLabelText("Parent name"), "Alex");
     await user.type(screen.getByLabelText("Child name"), "Sam");
-    await user.type(screen.getByLabelText("Child PIN"), "1234");
     await user.type(screen.getByLabelText("Parent PIN"), "2468");
     await user.click(screen.getByRole("button", { name: "Create household" }));
 
@@ -171,10 +173,10 @@ describe("AuthGate", () => {
         householdName: "The Example Household",
         parentName: "Alex",
         childName: "Sam",
-        childPin: "1234",
         parentPin: "2468",
       });
     });
+    expect(screen.queryByLabelText("Child PIN")).not.toBeInTheDocument();
   });
 
   it("renders protected content in e2e auth bypass mode", () => {
