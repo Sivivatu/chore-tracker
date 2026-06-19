@@ -38,6 +38,15 @@ function publicChild(child: Doc<"children"> | undefined) {
   };
 }
 
+function publicParent(parent: Doc<"parents">) {
+  return {
+    _id: parent._id,
+    _creationTime: parent._creationTime,
+    householdId: parent.householdId,
+    name: parent.name,
+  };
+}
+
 export const current = query({
   args: {},
   handler: async (ctx) => {
@@ -158,6 +167,26 @@ export const updateHouseholdIdentity = mutation({
     });
 
     return publicHousehold({ ...household, name });
+  },
+});
+
+export const updateParentIdentity = mutation({
+  args: { householdId: v.id("households"), name: v.string() },
+  handler: async (ctx, args) => {
+    const parent = await assertHouseholdAccess(ctx, args.householdId);
+    const name = normaliseIdentityName(args.name, "Parent name");
+
+    await ctx.db.patch(parent._id, { name });
+
+    await ctx.db.insert("auditEvents", {
+      householdId: args.householdId,
+      actorId: parent._id,
+      action: "Parent identity updated",
+      createdAt: new Date().toISOString(),
+      metadata: { name },
+    });
+
+    return publicParent({ ...parent, name });
   },
 });
 

@@ -29,6 +29,23 @@ export function ParentDashboardPage() {
       : "skip",
   );
   const summary = dashboard?.summary;
+  const isLoading =
+    context === undefined || (Boolean(context?.household) && dashboard === undefined);
+  const hasActivity =
+    Boolean(
+      dashboard?.days.some(
+        (day) =>
+          day.scheduled > 0 ||
+          day.approved > 0 ||
+          day.submitted > 0 ||
+          day.rejected > 0 ||
+          day.paused > 0,
+      ) ||
+        (summary &&
+          (summary.submittedCount > 0 ||
+            summary.pointsEarned > 0 ||
+            summary.pausedCount > 0)),
+    );
   const canGoBack = Boolean(dashboard && selectedWeekStart > dashboard.earliestWeekStart);
   const canGoForward = selectedWeekStart < currentWeekStart;
 
@@ -51,6 +68,16 @@ export function ParentDashboardPage() {
           Review routine progress, approve submissions, and keep points tied to verified completion.
         </p>
       </div>
+      {isLoading ? (
+        <div className="mb-6 rounded-lg border border-ink/10 bg-white p-4 font-bold text-ink/70 shadow-panel">
+          Loading live dashboard data…
+        </div>
+      ) : null}
+      {context === null ? (
+        <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">
+          We could not load your parent dashboard. Please sign in again.
+        </div>
+      ) : null}
       <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardMetricCard
           label="Completion"
@@ -73,6 +100,15 @@ export function ParentDashboardPage() {
           detail="Ranges overlapping this week"
         />
       </div>
+      {dashboard && !hasActivity ? (
+        <div className="mt-6 rounded-lg border border-dashed border-ink/20 bg-white p-4 text-ink/70 shadow-panel">
+          <p className="font-black text-ink">No dashboard activity for this week yet.</p>
+          <p className="mt-1 text-sm">
+            Routine, chore, approval and pause data will appear here once this household has live
+            activity in the selected week.
+          </p>
+        </div>
+      ) : null}
       <div className="mt-6 flex flex-col gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-panel sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-ink/60">
