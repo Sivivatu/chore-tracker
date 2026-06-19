@@ -92,6 +92,13 @@ export function ParentSettingsPage() {
             initialName={context.household.name}
           />
         ) : null}
+        {context?.household && context.parent ? (
+          <ParentIdentityForm
+            key={context.parent._id}
+            householdId={context.household._id}
+            initialName={context.parent.name}
+          />
+        ) : null}
         {context?.household && primaryChild ? (
           <ChildIdentityForm
             key={primaryChild._id}
@@ -451,6 +458,78 @@ function HouseholdIdentityForm({
       ) : null}
       <Button className="mt-4" type="submit">
         Save household
+      </Button>
+    </form>
+  );
+}
+
+function ParentIdentityForm({
+  householdId,
+  initialName,
+}: {
+  householdId: Id<"households">;
+  initialName: string;
+}) {
+  const [parentName, setParentName] = useState(initialName);
+  const [parentStatusMessage, setParentStatusMessage] = useState("");
+  const [parentError, setParentError] = useState("");
+  const updateParentIdentity = useMutation(api.households.updateParentIdentity);
+
+  async function saveParentIdentity(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setParentError("");
+    setParentStatusMessage("");
+
+    if (!parentName.trim()) {
+      setParentError("Parent name is required.");
+      return;
+    }
+
+    try {
+      await updateParentIdentity({ householdId, name: parentName });
+      setParentStatusMessage("Parent identity saved.");
+    } catch (error) {
+      setParentError(error instanceof Error ? error.message : "Could not save parent identity.");
+    }
+  }
+
+  return (
+    <form onSubmit={saveParentIdentity} className="mt-4 rounded-md bg-paper p-4">
+      <p className="text-base font-black">Parent profile</p>
+      <label htmlFor="parent-name" className="mt-4 block text-sm font-bold">
+        Parent name
+      </label>
+      <input
+        id="parent-name"
+        value={parentName}
+        maxLength={80}
+        onChange={(event) => {
+          setParentName(event.target.value);
+          setParentError("");
+          setParentStatusMessage("");
+        }}
+        className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3 text-lg font-bold"
+        aria-describedby={
+          [
+            parentError ? "parent-identity-error" : "",
+            parentStatusMessage ? "parent-identity-status" : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+      />
+      {parentError ? (
+        <p id="parent-identity-error" className="mt-2 text-sm font-bold text-rose-700">
+          {parentError}
+        </p>
+      ) : null}
+      {parentStatusMessage ? (
+        <p id="parent-identity-status" className="mt-2 text-sm font-bold text-teal">
+          {parentStatusMessage}
+        </p>
+      ) : null}
+      <Button className="mt-4" type="submit">
+        Save parent profile
       </Button>
     </form>
   );

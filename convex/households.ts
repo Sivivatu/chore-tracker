@@ -161,6 +161,26 @@ export const updateHouseholdIdentity = mutation({
   },
 });
 
+export const updateParentIdentity = mutation({
+  args: { householdId: v.id("households"), name: v.string() },
+  handler: async (ctx, args) => {
+    const parent = await assertHouseholdAccess(ctx, args.householdId);
+    const name = normaliseIdentityName(args.name, "Parent name");
+
+    await ctx.db.patch(parent._id, { name });
+
+    await ctx.db.insert("auditEvents", {
+      householdId: args.householdId,
+      actorId: parent._id,
+      action: "Parent identity updated",
+      createdAt: new Date().toISOString(),
+      metadata: { name },
+    });
+
+    return { ...parent, name };
+  },
+});
+
 export const updateChildIdentity = mutation({
   args: {
     householdId: v.id("households"),

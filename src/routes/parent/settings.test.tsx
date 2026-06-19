@@ -6,6 +6,7 @@ import { ParentSettingsPage } from "./settings";
 const convexState = vi.hoisted(() => ({
   setParentLockPin: vi.fn(),
   updateHouseholdIdentity: vi.fn(),
+  updateParentIdentity: vi.fn(),
   updateChildIdentity: vi.fn(),
   upsertChoreSettings: vi.fn(),
   createInvitation: vi.fn(),
@@ -62,6 +63,7 @@ vi.mock("convex/react", () => ({
     if (mutation._name?.includes("updateHouseholdIdentity")) {
       return convexState.updateHouseholdIdentity;
     }
+    if (mutation._name?.includes("updateParentIdentity")) return convexState.updateParentIdentity;
     if (mutation._name?.includes("updateChildIdentity")) return convexState.updateChildIdentity;
     if (mutation._name?.includes("upsertSettings")) return convexState.upsertChoreSettings;
     if (mutation._name?.includes("parentInvitations.create")) return convexState.createInvitation;
@@ -86,6 +88,7 @@ vi.mock("../../../convex/_generated/api", () => ({
       parentLockStatus: { _name: "parentLockStatus" },
       setParentLockPin: { _name: "setParentLockPin" },
       updateHouseholdIdentity: { _name: "updateHouseholdIdentity" },
+      updateParentIdentity: { _name: "updateParentIdentity" },
       updateChildIdentity: { _name: "updateChildIdentity" },
     },
     chores: {
@@ -104,12 +107,14 @@ describe("ParentSettingsPage", () => {
   beforeEach(() => {
     convexState.setParentLockPin.mockReset();
     convexState.updateHouseholdIdentity.mockReset();
+    convexState.updateParentIdentity.mockReset();
     convexState.updateChildIdentity.mockReset();
     convexState.upsertChoreSettings.mockReset();
     convexState.createInvitation.mockReset();
     convexState.revokeInvitation.mockReset();
     convexState.setParentLockPin.mockResolvedValue({ configured: true });
     convexState.updateHouseholdIdentity.mockResolvedValue({});
+    convexState.updateParentIdentity.mockResolvedValue({});
     convexState.updateChildIdentity.mockResolvedValue({});
     convexState.upsertChoreSettings.mockResolvedValue({});
     convexState.createInvitation.mockResolvedValue({
@@ -124,6 +129,7 @@ describe("ParentSettingsPage", () => {
 
     expect(screen.getByRole("heading", { name: "The Parker Household" })).toBeInTheDocument();
     expect(screen.getByLabelText(/household name/i)).toHaveValue("The Parker Household");
+    expect(screen.getByLabelText(/parent name/i)).toHaveValue("Alex");
     expect(screen.getByLabelText(/child name/i)).toHaveValue("Maya");
     expect(screen.getByLabelText(/custom avatar colour/i)).toHaveValue("#ffcf5a");
     expect(screen.getByRole("button", { name: /use star avatar/i })).toHaveAttribute(
@@ -145,6 +151,21 @@ describe("ParentSettingsPage", () => {
       name: "The Singh Household",
     });
     expect(await screen.findByText("Household identity saved.")).toBeInTheDocument();
+  });
+
+  it("saves edited parent identity", async () => {
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.clear(screen.getByLabelText(/parent name/i));
+    await user.type(screen.getByLabelText(/parent name/i), "Sam");
+    await user.click(screen.getByRole("button", { name: /save parent profile/i }));
+
+    expect(convexState.updateParentIdentity).toHaveBeenCalledWith({
+      householdId: "household-1",
+      name: "Sam",
+    });
+    expect(await screen.findByText("Parent identity saved.")).toBeInTheDocument();
   });
 
   it("saves edited child identity", async () => {
@@ -173,12 +194,16 @@ describe("ParentSettingsPage", () => {
 
     await user.clear(screen.getByLabelText(/household name/i));
     await user.click(screen.getByRole("button", { name: /save household/i }));
+    await user.clear(screen.getByLabelText(/parent name/i));
+    await user.click(screen.getByRole("button", { name: /save parent profile/i }));
     await user.clear(screen.getByLabelText(/child name/i));
     await user.click(screen.getByRole("button", { name: /save child profile/i }));
 
     expect(screen.getByText("Household name is required.")).toBeInTheDocument();
+    expect(screen.getByText("Parent name is required.")).toBeInTheDocument();
     expect(screen.getByText("Child name is required.")).toBeInTheDocument();
     expect(convexState.updateHouseholdIdentity).not.toHaveBeenCalled();
+    expect(convexState.updateParentIdentity).not.toHaveBeenCalled();
     expect(convexState.updateChildIdentity).not.toHaveBeenCalled();
   });
 
@@ -199,14 +224,17 @@ describe("ParentSettingsPage", () => {
 
   it("shows backend failures independently for identity forms", async () => {
     convexState.updateHouseholdIdentity.mockRejectedValue(new Error("Household save failed"));
+    convexState.updateParentIdentity.mockRejectedValue(new Error("Parent save failed"));
     convexState.updateChildIdentity.mockRejectedValue(new Error("Child save failed"));
     const user = userEvent.setup();
     render(<ParentSettingsPage />);
 
     await user.click(screen.getByRole("button", { name: /save household/i }));
+    await user.click(screen.getByRole("button", { name: /save parent profile/i }));
     await user.click(screen.getByRole("button", { name: /save child profile/i }));
 
     expect(await screen.findByText("Household save failed")).toBeInTheDocument();
+    expect(await screen.findByText("Parent save failed")).toBeInTheDocument();
     expect(await screen.findByText("Child save failed")).toBeInTheDocument();
   });
 
