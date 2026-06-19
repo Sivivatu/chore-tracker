@@ -11,7 +11,7 @@
 - [x] need parent invite process to join additional parents to a family.
 - [ ] update the settings page to allow the setting of names
 - [x] parent pin reset options in the settings page
-- [ ] connect dashboard to actual data in backend
+- [x] connect dashboard to actual data in backend
 - [ ] implement reward redemption process - child selects, parent approves
 - [ ] Behaviour bonuses, positive rewards for good behaviour, negative for bad. should be fixed amounts depending for 1-5 level of good/bad. free text for the reasons with tagging.
 - [ ]
