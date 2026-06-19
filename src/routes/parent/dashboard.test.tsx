@@ -5,7 +5,7 @@ import { ParentDashboardPage } from "./dashboard";
 const queryState = vi.hoisted(() => ({
   lastWeeklyArgs: null as null | { weekStart: string; today: string },
   currentContext: "loaded" as "loaded" | "loading" | "missing",
-  dashboard: "loaded" as "loaded" | "loading" | "empty",
+  dashboard: "loaded" as "loaded" | "loading" | "empty" | "summaryOnly",
 }));
 
 function weekEndFor(weekStart: string) {
@@ -36,14 +36,22 @@ vi.mock("convex/react", () => ({
         signupDate: "2026-05-27",
         earliestWeekStart: "2026-05-25",
         currentWeekStart: "2026-06-08",
-        summary: {
-          completionPercentage: 75,
-          submittedCount: 2,
-          pointsEarned: 18,
-          pausedCount: 1,
-        },
-        days:
+        summary:
           queryState.dashboard === "empty"
+            ? {
+                completionPercentage: 0,
+                submittedCount: 0,
+                pointsEarned: 0,
+                pausedCount: 0,
+              }
+            : {
+                completionPercentage: 75,
+                submittedCount: 2,
+                pointsEarned: 18,
+                pausedCount: 1,
+              },
+        days:
+          queryState.dashboard === "empty" || queryState.dashboard === "summaryOnly"
             ? [
                 {
                   date: args.weekStart,
@@ -152,5 +160,12 @@ describe("ParentDashboardPage", () => {
     render(<ParentDashboardPage />);
 
     expect(screen.getByText("No dashboard activity for this week yet.")).toBeInTheDocument();
+  });
+
+  it("does not show the empty state for summary-only dashboard activity", () => {
+    queryState.dashboard = "summaryOnly";
+    render(<ParentDashboardPage />);
+
+    expect(screen.queryByText("No dashboard activity for this week yet.")).not.toBeInTheDocument();
   });
 });

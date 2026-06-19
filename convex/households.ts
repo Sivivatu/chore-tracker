@@ -38,6 +38,15 @@ function publicChild(child: Doc<"children"> | undefined) {
   };
 }
 
+function publicParent(parent: Doc<"parents">) {
+  return {
+    _id: parent._id,
+    _creationTime: parent._creationTime,
+    householdId: parent.householdId,
+    name: parent.name,
+  };
+}
+
 export const current = query({
   args: {},
   handler: async (ctx) => {
@@ -177,7 +186,7 @@ export const updateParentIdentity = mutation({
       metadata: { name },
     });
 
-    return { ...parent, name };
+    return publicParent({ ...parent, name });
   },
 });
 
