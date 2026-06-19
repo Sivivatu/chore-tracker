@@ -61,6 +61,7 @@ export const weeklyOverview = query({
       .withIndex("by_household_and_approvedAt", (query) =>
         query
           .eq("householdId", args.householdId)
+          .gt("approvedAt", undefined)
           .lte("approvedAt", `${addDays(currentWeekStart, 6)}T23:59:59.999Z`),
       )
       .take(1);
