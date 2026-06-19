@@ -48,9 +48,37 @@ export const weeklyOverview = query({
     parseDateKey(args.today);
 
     const signupDate = toDateKey(new Date(parent._creationTime));
-    const earliestWeekStart = mondayFor(signupDate);
     const currentWeekStart = mondayFor(args.today);
     const requestedWeekStart = mondayFor(args.weekStart);
+    const earliestRoutineInstances = await ctx.db
+      .query("routineInstances")
+      .withIndex("by_household_date", (query) =>
+        query.eq("householdId", args.householdId).lte("date", currentWeekStart),
+      )
+      .take(1);
+    const earliestApprovedChores = await ctx.db
+      .query("choreSubmissions")
+      .withIndex("by_household_and_approvedAt", (query) =>
+        query
+          .eq("householdId", args.householdId)
+          .lte("approvedAt", `${addDays(currentWeekStart, 6)}T23:59:59.999Z`),
+      )
+      .take(1);
+    const earliestHolidayPauses = await ctx.db
+      .query("holidayPauses")
+      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
+      .take(MAX_HOLIDAY_PAUSES);
+    const earliestActivityDate = [
+      signupDate,
+      earliestRoutineInstances[0]?.date,
+      earliestApprovedChores[0]?.approvedAt?.slice(0, 10),
+      earliestHolidayPauses
+        .filter((pause) => pause.startDate <= addDays(currentWeekStart, 6))
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))[0]?.startDate,
+    ]
+      .filter((date): date is string => Boolean(date))
+      .sort()[0];
+    const earliestWeekStart = mondayFor(earliestActivityDate);
     const weekStart =
       requestedWeekStart < earliestWeekStart
         ? earliestWeekStart
@@ -86,10 +114,7 @@ export const weeklyOverview = query({
           .lte("approvedAt", `${weekEnd}T23:59:59.999Z`),
       )
       .take(MAX_WEEKLY_CHORES);
-    const holidayPauses = await ctx.db
-      .query("holidayPauses")
-      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
-      .take(MAX_HOLIDAY_PAUSES);
+    const holidayPauses = earliestHolidayPauses;
 
     const approvedRoutinePoints = await Promise.all(
       routineInstances

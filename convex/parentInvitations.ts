@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { assertHouseholdAccess, currentClerkUserId } from "./security";
+import { assertHouseholdAccess, currentClerkUserId, currentParent } from "./security";
 
 const INVITE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_PARENTS = 2;
@@ -112,12 +112,9 @@ export const accept = mutation({
   args: { token: v.string(), name: v.string() },
   handler: async (ctx, args) => {
     if (!validToken(args.token)) throw new Error("Invitation is invalid");
-    const clerkUserId = await currentClerkUserId(ctx);
-    const existingParent = await ctx.db
-      .query("parents")
-      .withIndex("by_clerk_user", (query) => query.eq("clerkUserId", clerkUserId))
-      .unique();
+    const existingParent = await currentParent(ctx);
     if (existingParent) throw new Error("This account already belongs to a household");
+    const clerkUserId = await currentClerkUserId(ctx);
 
     const tokenHash = await hashToken(args.token);
     const invitation = await ctx.db

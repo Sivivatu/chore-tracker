@@ -49,8 +49,7 @@ function decodePublishableKeyDomain(publishableKey) {
   if (!match) throw new Error("VITE_CLERK_PUBLISHABLE_KEY has an invalid format");
 
   const encoded = match[1].replace(/\$$/, "");
-  const padding = "=".repeat((4 - (encoded.length % 4)) % 4);
-  return Buffer.from(`${encoded}${padding}`, "base64").toString("utf8").replace(/\$$/, "");
+  return Buffer.from(encoded, "base64url").toString("utf8").replace(/\$$/, "");
 }
 
 async function main() {
@@ -80,7 +79,7 @@ async function main() {
 
   const clerk = createClerkClient({ secretKey });
   const [templates, waitlist] = await Promise.all([
-    clerk.jwtTemplates.list({ limit: 100 }),
+    clerk.jwtTemplates.list({ limit: 100, paginated: true }),
     clerk.waitlistEntries.list({ limit: 1 }),
   ]);
   const convexTemplate = templates.data.find((template) => template.name === "convex");
