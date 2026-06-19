@@ -23,7 +23,7 @@ vi.mock("@/app/providers", () => ({
   isE2EAuthBypass: () => false,
 }));
 
-vi.mock("@clerk/clerk-react", () => ({
+vi.mock("@clerk/react", () => ({
   useAuth: () => ({ isLoaded: state.isLoaded, isSignedIn: state.isSignedIn }),
 }));
 

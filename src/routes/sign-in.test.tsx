@@ -13,7 +13,7 @@ vi.mock("@/app/providers", () => ({
   isE2EAuthBypass: () => state.e2eBypass,
 }));
 
-vi.mock("@clerk/clerk-react", () => ({
+vi.mock("@clerk/react", () => ({
   SignIn: (props: Record<string, unknown>) => {
     state.props = props;
     return <div data-testid="sign-in" />;

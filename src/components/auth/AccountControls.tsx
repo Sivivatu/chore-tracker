@@ -1,4 +1,4 @@
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { Show, SignInButton, UserButton } from "@clerk/react";
 import { useRouterState } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
 import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
@@ -10,9 +10,8 @@ function ClerkAccountControls() {
 
   return (
     <div className="flex min-h-10 items-center justify-end gap-2">
-      <SignedIn>
+      <Show when="signed-in">
         <UserButton
-          afterSignOutUrl="/sign-in"
           appearance={{
             elements: {
               avatarBox: "h-10 w-10",
@@ -20,8 +19,8 @@ function ClerkAccountControls() {
             },
           }}
         />
-      </SignedIn>
-      <SignedOut>
+      </Show>
+      <Show when="signed-out">
         {isSignInPage ? null : (
           <SignInButton mode="redirect" forceRedirectUrl="/parent/dashboard">
             <Button type="button" className="min-h-10 px-3">
@@ -30,7 +29,7 @@ function ClerkAccountControls() {
             </Button>
           </SignInButton>
         )}
-      </SignedOut>
+      </Show>
     </div>
   );
 }

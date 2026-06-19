@@ -1,4 +1,4 @@
-import { SignIn } from "@clerk/clerk-react";
+import { SignIn } from "@clerk/react";
 import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 
 export function SignInPage() {

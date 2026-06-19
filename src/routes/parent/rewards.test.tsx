@@ -50,7 +50,7 @@ vi.mock("convex/react", () => ({
   },
 }));
 
-vi.mock("@clerk/clerk-react", () => ({
+vi.mock("@clerk/react", () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue("clerk-token"),
     isSignedIn: true,

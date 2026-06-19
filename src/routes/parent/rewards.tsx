@@ -1,5 +1,5 @@
 import { Image, Pencil, UploadCloud } from "lucide-react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/react";
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
