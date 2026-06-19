@@ -115,7 +115,6 @@ export const weeklyOverview = query({
           .lte("approvedAt", `${weekEnd}T23:59:59.999Z`),
       )
       .take(MAX_WEEKLY_CHORES);
-<<<<<<< HEAD
     const holidayPauses = earliestHolidayPauses;
 
     const approvedRoutinePoints = await Promise.all(
