@@ -12,7 +12,7 @@ vi.mock("@/app/providers", () => ({
   isE2EAuthBypass: () => state.e2eBypass,
 }));
 
-vi.mock("@clerk/clerk-react", () => ({
+vi.mock("@clerk/react", () => ({
   Waitlist: ({ signInUrl }: { signInUrl: string }) => (
     <div data-testid="waitlist">Sign in at {signInUrl}</div>
   ),

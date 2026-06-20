@@ -1,4 +1,4 @@
-import { Waitlist } from "@clerk/clerk-react";
+import { Waitlist } from "@clerk/react";
 import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 
 export function WaitlistPage() {

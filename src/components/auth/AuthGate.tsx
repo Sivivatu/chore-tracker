@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/react";
 import { Navigate } from "@tanstack/react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useState, type PropsWithChildren } from "react";
