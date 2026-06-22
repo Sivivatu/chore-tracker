@@ -61,7 +61,7 @@ export const current = query({
 export const currentContext = query({
   args: {},
   handler: async (ctx) => {
-    const parent = await currentParent(ctx);
+    const parent = await currentParent(ctx, { allowUnauthenticated: true });
     if (!parent) return null;
 
     const household = await ctx.db.get(parent.householdId);
