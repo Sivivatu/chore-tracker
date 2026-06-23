@@ -52,6 +52,18 @@ async function getTemplateSteps(ctx: MutationCtx, routineTemplateId: Id<"routine
     .collect();
 }
 
+function dayLabelFromDateKey(date: string) {
+  const parsed = new Date(`${date}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+  const label = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][parsed.getUTCDay()];
+  if (!label) throw new Error("Invalid date");
+  return label;
+}
+
+function isTemplateScheduledForDate(template: Doc<"routineTemplates">, date: string) {
+  return template.schedule.length === 0 || template.schedule.includes(dayLabelFromDateKey(date));
+}
+
 async function replaceTemplateSteps(
   ctx: MutationCtx,
   householdId: Id<"households">,
@@ -262,15 +274,29 @@ export const listTodayForParent = query({
 });
 
 export const listTodayWithSteps = query({
-  args: { householdId: v.id("households"), date: v.string() },
+  args: {
+    householdId: v.id("households"),
+    date: v.string(),
+    childId: v.optional(v.id("children")),
+  },
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
-    const instances = await ctx.db
-      .query("routineInstances")
-      .withIndex("by_household_date", (query) =>
-        query.eq("householdId", args.householdId).eq("date", args.date),
-      )
-      .collect();
+    const instances = args.childId
+      ? await ctx.db
+          .query("routineInstances")
+          .withIndex("by_household_date_and_child", (query) =>
+            query
+              .eq("householdId", args.householdId)
+              .eq("date", args.date)
+              .eq("childId", args.childId),
+          )
+          .collect()
+      : await ctx.db
+          .query("routineInstances")
+          .withIndex("by_household_date", (query) =>
+            query.eq("householdId", args.householdId).eq("date", args.date),
+          )
+          .collect();
 
     return await Promise.all(
       instances.map(async (instance) => {
@@ -288,6 +314,76 @@ export const listTodayWithSteps = query({
         };
       }),
     );
+  },
+});
+
+export const ensureTodayForChild = mutation({
+  args: {
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    date: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await assertHouseholdAccess(ctx, args.householdId);
+    const child = await ctx.db.get(args.childId);
+    if (!child || child.householdId !== args.householdId) {
+      throw new Error("Child profile not found");
+    }
+
+    const templates = await ctx.db
+      .query("routineTemplates")
+      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
+      .collect();
+    const todaysInstances = await ctx.db
+      .query("routineInstances")
+      .withIndex("by_household_date_and_child", (query) =>
+        query.eq("householdId", args.householdId).eq("date", args.date).eq("childId", args.childId),
+      )
+      .collect();
+    const existingTemplateIds = new Set(
+      todaysInstances.map((instance) => instance.routineTemplateId),
+    );
+
+    let createdCount = 0;
+    for (const template of templates) {
+      if (
+        !template.active ||
+        existingTemplateIds.has(template._id) ||
+        !isTemplateScheduledForDate(template, args.date)
+      ) {
+        continue;
+      }
+
+      const steps = await getTemplateSteps(ctx, template._id);
+      const routineInstanceId = await ctx.db.insert("routineInstances", {
+        householdId: args.householdId,
+        childId: args.childId,
+        routineTemplateId: template._id,
+        date: args.date,
+        status: "not_started",
+        snapshotName: template.name,
+        snapshotType: template.type,
+      });
+
+      for (const step of steps.sort((a, b) => a.order - b.order)) {
+        await ctx.db.insert("stepInstances", {
+          householdId: args.householdId,
+          childId: args.childId,
+          routineInstanceId,
+          snapshotTitle: step.title,
+          snapshotDescription: step.description,
+          snapshotOrder: step.order,
+          snapshotPoints: step.points,
+          snapshotRequired: step.required,
+          snapshotIllustrationKey: step.illustrationKey,
+          accent: step.accent,
+        });
+      }
+
+      createdCount += 1;
+    }
+
+    return { createdCount };
   },
 });
 
