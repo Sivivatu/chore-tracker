@@ -77,6 +77,31 @@ async function hasHolidayPauseForDate(
   return pauses.some((pause) => pause.startDate <= date && date <= pause.endDate);
 }
 
+async function listChildRoutineInstancesForDate(
+  ctx: MutationCtx,
+  householdId: Id<"households">,
+  childId: Id<"children">,
+  date: string,
+) {
+  return await ctx.db
+    .query("routineInstances")
+    .withIndex("by_household_date_and_child", (query) =>
+      query.eq("householdId", householdId).eq("date", date).eq("childId", childId),
+    )
+    .collect();
+}
+
+async function pauseActionableRoutineInstances(
+  ctx: MutationCtx,
+  instances: Doc<"routineInstances">[],
+) {
+  for (const instance of instances) {
+    if (instance.status === "not_started" || instance.status === "in_progress") {
+      await ctx.db.patch(instance._id, { status: "paused" });
+    }
+  }
+}
+
 async function replaceTemplateSteps(
   ctx: MutationCtx,
   householdId: Id<"households">,
@@ -343,19 +368,20 @@ export const ensureTodayForChild = mutation({
     if (!child || child.householdId !== args.householdId) {
       throw new Error("Child profile not found");
     }
+    const todaysInstances = await listChildRoutineInstancesForDate(
+      ctx,
+      args.householdId,
+      args.childId,
+      args.date,
+    );
     if (await hasHolidayPauseForDate(ctx, args.householdId, args.date)) {
+      await pauseActionableRoutineInstances(ctx, todaysInstances);
       return { createdCount: 0 };
     }
 
     const templates = await ctx.db
       .query("routineTemplates")
       .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
-      .collect();
-    const todaysInstances = await ctx.db
-      .query("routineInstances")
-      .withIndex("by_household_date_and_child", (query) =>
-        query.eq("householdId", args.householdId).eq("date", args.date).eq("childId", args.childId),
-      )
       .collect();
     const existingTemplateIds = new Set(
       todaysInstances.map((instance) => instance.routineTemplateId),
