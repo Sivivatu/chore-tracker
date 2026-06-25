@@ -52,6 +52,56 @@ async function getTemplateSteps(ctx: MutationCtx, routineTemplateId: Id<"routine
     .collect();
 }
 
+function dayLabelFromDateKey(date: string) {
+  const parsed = new Date(`${date}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+  const label = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][parsed.getUTCDay()];
+  if (!label) throw new Error("Invalid date");
+  return label;
+}
+
+function isTemplateScheduledForDate(template: Doc<"routineTemplates">, date: string) {
+  return template.schedule.includes(dayLabelFromDateKey(date));
+}
+
+async function hasHolidayPauseForDate(
+  ctx: MutationCtx,
+  householdId: Id<"households">,
+  date: string,
+) {
+  const pauses = await ctx.db
+    .query("holidayPauses")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+
+  return pauses.some((pause) => pause.startDate <= date && date <= pause.endDate);
+}
+
+async function listChildRoutineInstancesForDate(
+  ctx: MutationCtx,
+  householdId: Id<"households">,
+  childId: Id<"children">,
+  date: string,
+) {
+  return await ctx.db
+    .query("routineInstances")
+    .withIndex("by_household_date_and_child", (query) =>
+      query.eq("householdId", householdId).eq("date", date).eq("childId", childId),
+    )
+    .collect();
+}
+
+async function pauseActionableRoutineInstances(
+  ctx: MutationCtx,
+  instances: Doc<"routineInstances">[],
+) {
+  for (const instance of instances) {
+    if (instance.status === "not_started" || instance.status === "in_progress") {
+      await ctx.db.patch(instance._id, { status: "paused" });
+    }
+  }
+}
+
 async function replaceTemplateSteps(
   ctx: MutationCtx,
   householdId: Id<"households">,
@@ -262,15 +312,30 @@ export const listTodayForParent = query({
 });
 
 export const listTodayWithSteps = query({
-  args: { householdId: v.id("households"), date: v.string() },
+  args: {
+    householdId: v.id("households"),
+    date: v.string(),
+    childId: v.optional(v.id("children")),
+  },
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
-    const instances = await ctx.db
-      .query("routineInstances")
-      .withIndex("by_household_date", (query) =>
-        query.eq("householdId", args.householdId).eq("date", args.date),
-      )
-      .collect();
+    const childId = args.childId;
+    const instances = childId
+      ? await ctx.db
+          .query("routineInstances")
+          .withIndex("by_household_date_and_child", (query) =>
+            query
+              .eq("householdId", args.householdId)
+              .eq("date", args.date)
+              .eq("childId", childId),
+          )
+          .collect()
+      : await ctx.db
+          .query("routineInstances")
+          .withIndex("by_household_date", (query) =>
+            query.eq("householdId", args.householdId).eq("date", args.date),
+          )
+          .collect();
 
     return await Promise.all(
       instances.map(async (instance) => {
@@ -288,6 +353,80 @@ export const listTodayWithSteps = query({
         };
       }),
     );
+  },
+});
+
+export const ensureTodayForChild = mutation({
+  args: {
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    date: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await assertHouseholdAccess(ctx, args.householdId);
+    const child = await ctx.db.get(args.childId);
+    if (!child || child.householdId !== args.householdId) {
+      throw new Error("Child profile not found");
+    }
+    const todaysInstances = await listChildRoutineInstancesForDate(
+      ctx,
+      args.householdId,
+      args.childId,
+      args.date,
+    );
+    if (await hasHolidayPauseForDate(ctx, args.householdId, args.date)) {
+      await pauseActionableRoutineInstances(ctx, todaysInstances);
+      return { createdCount: 0 };
+    }
+
+    const templates = await ctx.db
+      .query("routineTemplates")
+      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
+      .collect();
+    const existingTemplateIds = new Set(
+      todaysInstances.map((instance) => instance.routineTemplateId),
+    );
+
+    let createdCount = 0;
+    for (const template of templates) {
+      if (
+        !template.active ||
+        existingTemplateIds.has(template._id) ||
+        !isTemplateScheduledForDate(template, args.date)
+      ) {
+        continue;
+      }
+
+      const steps = await getTemplateSteps(ctx, template._id);
+      const routineInstanceId = await ctx.db.insert("routineInstances", {
+        householdId: args.householdId,
+        childId: args.childId,
+        routineTemplateId: template._id,
+        date: args.date,
+        status: "not_started",
+        snapshotName: template.name,
+        snapshotType: template.type,
+      });
+
+      for (const step of steps.sort((a, b) => a.order - b.order)) {
+        await ctx.db.insert("stepInstances", {
+          householdId: args.householdId,
+          childId: args.childId,
+          routineInstanceId,
+          snapshotTitle: step.title,
+          snapshotDescription: step.description,
+          snapshotOrder: step.order,
+          snapshotPoints: step.points,
+          snapshotRequired: step.required,
+          snapshotIllustrationKey: step.illustrationKey,
+          accent: step.accent,
+        });
+      }
+
+      createdCount += 1;
+    }
+
+    return { createdCount };
   },
 });
 

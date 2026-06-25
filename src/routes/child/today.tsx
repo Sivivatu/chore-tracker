@@ -1,14 +1,38 @@
-import { useQuery } from "convex/react";
+import { useEffect, useMemo } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { RoutineCard } from "@/components/child/RoutineCard";
-import { demoRoutineDate } from "@/lib/demo-date";
+import { readChildSession } from "@/lib/child-session";
+import { toDateKey } from "@/lib/dates";
 
 export function ChildTodayPage() {
   const context = useQuery(api.households.currentContext);
+  const childSession = readChildSession();
+  const childId = childSession?.childId;
+  const householdId = context?.household?._id;
+  const today = useMemo(() => toDateKey(new Date()), []);
+  const ensureTodayForChild = useMutation(api.routines.ensureTodayForChild);
   const todaysRoutines = useQuery(
     api.routines.listTodayWithSteps,
-    context?.household ? { householdId: context.household._id, date: demoRoutineDate } : "skip",
+    householdId && childId
+      ? {
+          householdId,
+          childId: childId as Id<"children">,
+          date: today,
+        }
+      : "skip",
   );
+
+  useEffect(() => {
+    if (!householdId || !childId) return;
+
+    void ensureTodayForChild({
+      householdId,
+      childId: childId as Id<"children">,
+      date: today,
+    });
+  }, [childId, ensureTodayForChild, householdId, today]);
 
   return (
     <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">

@@ -128,6 +128,7 @@ export default defineSchema({
     rejectionNote: v.optional(v.string()),
   })
     .index("by_household_date", ["householdId", "date"])
+    .index("by_household_date_and_child", ["householdId", "date", "childId"])
     .index("by_household_and_status", ["householdId", "status"]),
   stepInstances: defineTable({
     householdId: v.id("households"),
