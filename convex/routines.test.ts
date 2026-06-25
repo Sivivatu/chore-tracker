@@ -98,4 +98,84 @@ describe("routines", () => {
       }),
     ]);
   });
+
+  it("does not materialise custom routines without scheduled days", async () => {
+    const { owner, householdId, childId } = await createHousehold();
+
+    await owner.mutation(api.routines.createTemplate, {
+      householdId,
+      name: "Ad hoc reset",
+      type: "custom",
+      active: true,
+      schedule: [],
+      steps: [
+        {
+          title: "Tidy desk",
+          description: "Clear the workspace.",
+          points: 5,
+          required: true,
+          illustrationKey: "desk",
+          accent: "#38bdf8",
+        },
+      ],
+    });
+
+    await expect(
+      owner.mutation(api.routines.ensureTodayForChild, {
+        householdId,
+        childId,
+        date: "2026-06-23",
+      }),
+    ).resolves.toEqual({ createdCount: 0 });
+
+    await expect(
+      owner.query(api.routines.listTodayWithSteps, {
+        householdId,
+        date: "2026-06-23",
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it("does not materialise routines during holiday pauses", async () => {
+    const { owner, householdId, childId } = await createHousehold();
+
+    await owner.mutation(api.routines.createTemplate, {
+      householdId,
+      name: "School Morning",
+      type: "morning",
+      active: true,
+      schedule: ["Tue"],
+      steps: [
+        {
+          title: "Brush teeth",
+          description: "Brush for two minutes.",
+          points: 5,
+          required: true,
+          illustrationKey: "teeth",
+          accent: "#38bdf8",
+        },
+      ],
+    });
+    await owner.mutation(api.holidayPauses.create, {
+      householdId,
+      startDate: "2026-06-22",
+      endDate: "2026-06-24",
+      reason: "Family trip",
+    });
+
+    await expect(
+      owner.mutation(api.routines.ensureTodayForChild, {
+        householdId,
+        childId,
+        date: "2026-06-23",
+      }),
+    ).resolves.toEqual({ createdCount: 0 });
+
+    await expect(
+      owner.query(api.routines.listTodayWithSteps, {
+        householdId,
+        date: "2026-06-23",
+      }),
+    ).resolves.toEqual([]);
+  });
 });

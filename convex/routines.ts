@@ -61,7 +61,20 @@ function dayLabelFromDateKey(date: string) {
 }
 
 function isTemplateScheduledForDate(template: Doc<"routineTemplates">, date: string) {
-  return template.schedule.length === 0 || template.schedule.includes(dayLabelFromDateKey(date));
+  return template.schedule.includes(dayLabelFromDateKey(date));
+}
+
+async function hasHolidayPauseForDate(
+  ctx: MutationCtx,
+  householdId: Id<"households">,
+  date: string,
+) {
+  const pauses = await ctx.db
+    .query("holidayPauses")
+    .withIndex("by_household", (query) => query.eq("householdId", householdId))
+    .collect();
+
+  return pauses.some((pause) => pause.startDate <= date && date <= pause.endDate);
 }
 
 async function replaceTemplateSteps(
@@ -281,14 +294,15 @@ export const listTodayWithSteps = query({
   },
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
-    const instances = args.childId
+    const childId = args.childId;
+    const instances = childId
       ? await ctx.db
           .query("routineInstances")
           .withIndex("by_household_date_and_child", (query) =>
             query
               .eq("householdId", args.householdId)
               .eq("date", args.date)
-              .eq("childId", args.childId),
+              .eq("childId", childId),
           )
           .collect()
       : await ctx.db
@@ -328,6 +342,9 @@ export const ensureTodayForChild = mutation({
     const child = await ctx.db.get(args.childId);
     if (!child || child.householdId !== args.householdId) {
       throw new Error("Child profile not found");
+    }
+    if (await hasHolidayPauseForDate(ctx, args.householdId, args.date)) {
+      return { createdCount: 0 };
     }
 
     const templates = await ctx.db
