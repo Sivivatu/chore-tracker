@@ -6,6 +6,7 @@ const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_WEEKLY_ROUTINES = 200;
 const MAX_APPROVAL_QUEUE_ITEMS = 200;
 const MAX_WEEKLY_CHORES = 200;
+const MAX_WEEKLY_BEHAVIOURS = 200;
 const MAX_HOLIDAY_PAUSES = 200;
 const MAX_STEPS_PER_ROUTINE = 100;
 
@@ -56,15 +57,17 @@ export const weeklyOverview = query({
         query.eq("householdId", args.householdId).lte("date", currentWeekStart),
       )
       .take(1);
-    const earliestApprovedChores = await ctx.db
+    const choreActivityForBounds = await ctx.db
       .query("choreSubmissions")
-      .withIndex("by_household_and_approvedAt", (query) =>
-        query
-          .eq("householdId", args.householdId)
-          .gt("approvedAt", undefined)
-          .lte("approvedAt", `${addDays(currentWeekStart, 6)}T23:59:59.999Z`),
+      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
+      .take(MAX_WEEKLY_CHORES);
+    const earliestApprovedChoreDate = choreActivityForBounds
+      .filter((submission) => submission.status === "approved")
+      .map((submission) => submission.completedOnDate ?? submission.approvedAt?.slice(0, 10))
+      .filter(
+        (date): date is string => Boolean(date && date <= addDays(currentWeekStart, 6)),
       )
-      .take(1);
+      .sort()[0];
     const earliestHolidayPauses = await ctx.db
       .query("holidayPauses")
       .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
@@ -72,7 +75,7 @@ export const weeklyOverview = query({
     const earliestActivityDate = [
       signupDate,
       earliestRoutineInstances[0]?.date,
-      earliestApprovedChores[0]?.approvedAt?.slice(0, 10),
+      earliestApprovedChoreDate,
       earliestHolidayPauses
         .filter((pause) => pause.startDate <= addDays(currentWeekStart, 6))
         .sort((a, b) => a.startDate.localeCompare(b.startDate))[0]?.startDate,
@@ -108,13 +111,19 @@ export const weeklyOverview = query({
       .take(MAX_APPROVAL_QUEUE_ITEMS);
     const approvedChores = await ctx.db
       .query("choreSubmissions")
-      .withIndex("by_household_and_approvedAt", (query) =>
-        query
-          .eq("householdId", args.householdId)
-          .gte("approvedAt", `${weekStart}T00:00:00.000Z`)
-          .lte("approvedAt", `${weekEnd}T23:59:59.999Z`),
-      )
+      .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
       .take(MAX_WEEKLY_CHORES);
+    const weekApprovedChores = approvedChores.filter((chore) => {
+      if (chore.status !== "approved") return false;
+      const completedDate = chore.completedOnDate ?? chore.approvedAt?.slice(0, 10);
+      return Boolean(completedDate && completedDate >= weekStart && completedDate <= weekEnd);
+    });
+    const behaviourEntries = await ctx.db
+      .query("behaviourEntries")
+      .withIndex("by_household_and_date", (query) =>
+        query.eq("householdId", args.householdId).gte("date", weekStart).lte("date", weekEnd),
+      )
+      .take(MAX_WEEKLY_BEHAVIOURS);
     const holidayPauses = earliestHolidayPauses;
 
     const approvedRoutinePoints = await Promise.all(
@@ -156,7 +165,8 @@ export const weeklyOverview = query({
         submittedCount: pendingRoutines.length + pendingChores.length,
         pointsEarned:
           approvedRoutinePoints.reduce((total, points) => total + points, 0) +
-          approvedChores.reduce((total, chore) => total + chore.earnedPoints, 0),
+          weekApprovedChores.reduce((total, chore) => total + chore.earnedPoints, 0) +
+          behaviourEntries.reduce((total, entry) => total + entry.pointsDelta, 0),
         pausedCount: overlappingPauses.length,
       },
       days: dateKeys.map((date) => {

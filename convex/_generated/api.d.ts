@@ -10,9 +10,13 @@
 
 import type * as approvals from "../approvals.js";
 import type * as auditEvents from "../auditEvents.js";
+import type * as backfill from "../backfill.js";
+import type * as behaviours from "../behaviours.js";
 import type * as childMode from "../childMode.js";
+import type * as choreCalculations from "../choreCalculations.js";
 import type * as chores from "../chores.js";
 import type * as dashboard from "../dashboard.js";
+import type * as dateValidation from "../dateValidation.js";
 import type * as holidayPauses from "../holidayPauses.js";
 import type * as households from "../households.js";
 import type * as parentInvitations from "../parentInvitations.js";
@@ -31,9 +35,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   approvals: typeof approvals;
   auditEvents: typeof auditEvents;
+  backfill: typeof backfill;
+  behaviours: typeof behaviours;
   childMode: typeof childMode;
+  choreCalculations: typeof choreCalculations;
   chores: typeof chores;
   dashboard: typeof dashboard;
+  dateValidation: typeof dateValidation;
   holidayPauses: typeof holidayPauses;
   households: typeof households;
   parentInvitations: typeof parentInvitations;

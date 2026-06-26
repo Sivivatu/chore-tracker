@@ -17,6 +17,8 @@ import { ParentDashboardPage } from "@/routes/parent/dashboard";
 import { ParentRoutinesPage } from "@/routes/parent/routines";
 import { ParentApprovalsPage } from "@/routes/parent/approvals";
 import { ParentChoresPage } from "@/routes/parent/chores";
+import { ParentBackfillPage } from "@/routes/parent/backfill";
+import { ParentBehaviourPage } from "@/routes/parent/behaviour";
 import { ParentRewardsPage } from "@/routes/parent/rewards";
 import { ParentPausesPage } from "@/routes/parent/pauses";
 import { ParentSettingsPage } from "@/routes/parent/settings";
@@ -126,6 +128,16 @@ const routeTree = rootRoute.addChildren([
       getParentRoute: () => parentRoute,
       path: "/chores",
       component: ParentChoresPage,
+    }),
+    createRoute({
+      getParentRoute: () => parentRoute,
+      path: "/backfill",
+      component: ParentBackfillPage,
+    }),
+    createRoute({
+      getParentRoute: () => parentRoute,
+      path: "/behaviour",
+      component: ParentBehaviourPage,
     }),
     createRoute({
       getParentRoute: () => parentRoute,
