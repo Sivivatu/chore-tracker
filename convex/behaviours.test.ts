@@ -128,4 +128,38 @@ describe("behaviours", () => {
       pointsDelta: 4,
     });
   });
+
+  it("returns the newest behaviour entries before capping history", async () => {
+    const { owner, householdId, childId } = await setup();
+    await owner.mutation(api.behaviours.create, {
+      householdId,
+      childId,
+      date: "2026-06-02",
+      kind: "positive",
+      categoryKey: "helpfulness",
+      note: "Oldest entry",
+      points: 1,
+    });
+    for (let index = 0; index < 100; index += 1) {
+      await owner.mutation(api.behaviours.create, {
+        householdId,
+        childId,
+        date: "2026-06-20",
+        kind: "positive",
+        categoryKey: "helpfulness",
+        note: `New entry ${index}`,
+        points: 1,
+      });
+    }
+
+    const entries = await owner.query(api.behaviours.listForChild, {
+      householdId,
+      childId,
+      fromDate: "2026-06-01",
+      toDate: "2026-06-29",
+    });
+
+    expect(entries).toHaveLength(100);
+    expect(entries.map((entry) => entry.note)).not.toContain("Oldest entry");
+  });
 });

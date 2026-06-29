@@ -54,6 +54,7 @@ export const listForChild = query({
       .withIndex("by_child_and_date", (q) =>
         q.eq("childId", args.childId).gte("date", args.fromDate).lte("date", args.toDate),
       )
+      .order("desc")
       .take(100);
 
     return entries

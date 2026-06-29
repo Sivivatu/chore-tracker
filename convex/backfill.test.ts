@@ -157,6 +157,98 @@ describe("backfill", () => {
     expect(child?.pointsBalance).toBe(11);
   });
 
+  it("lists existing routine steps from snapshots instead of current template steps", async () => {
+    const { t, owner, householdId, childId, routineTemplateId } = await setup();
+    await t.run(async (ctx) => {
+      const routineInstanceId = await ctx.db.insert("routineInstances", {
+        householdId,
+        childId,
+        routineTemplateId,
+        date: "2026-06-15",
+        status: "submitted",
+        snapshotName: "Morning",
+        snapshotType: "morning",
+        submittedAt: "2026-06-15T08:00:00.000Z",
+      });
+      await ctx.db.insert("stepInstances", {
+        householdId,
+        childId,
+        routineInstanceId,
+        snapshotTitle: "Historical step",
+        snapshotDescription: "",
+        snapshotOrder: 3,
+        snapshotPoints: 13,
+        snapshotRequired: true,
+        snapshotIllustrationKey: "history",
+        accent: "#38bdf8",
+        completedAt: "2026-06-15T08:05:00.000Z",
+        completedByChildId: childId,
+      });
+    });
+
+    const day = await owner.query(api.backfill.listBackfillDay, {
+      householdId,
+      childId,
+      date: "2026-06-15",
+    });
+
+    const routine = day.routines.find((row) => row.id === routineTemplateId);
+    expect(routine?.steps).toEqual([
+      expect.objectContaining({
+        order: 3,
+        title: "Historical step",
+        points: 13,
+        completed: true,
+      }),
+    ]);
+  });
+
+  it("allows an existing inactive routine instance to be backfilled", async () => {
+    const { t, owner, householdId, childId, routineTemplateId } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(routineTemplateId, { active: false });
+      const routineInstanceId = await ctx.db.insert("routineInstances", {
+        householdId,
+        childId,
+        routineTemplateId,
+        date: "2026-06-15",
+        status: "submitted",
+        snapshotName: "Morning",
+        snapshotType: "morning",
+        submittedAt: "2026-06-15T08:00:00.000Z",
+      });
+      await ctx.db.insert("stepInstances", {
+        householdId,
+        childId,
+        routineInstanceId,
+        snapshotTitle: "Old inactive step",
+        snapshotDescription: "",
+        snapshotOrder: 1,
+        snapshotPoints: 9,
+        snapshotRequired: true,
+        snapshotIllustrationKey: "history",
+        accent: "#38bdf8",
+      });
+    });
+
+    const day = await owner.query(api.backfill.listBackfillDay, {
+      householdId,
+      childId,
+      date: "2026-06-15",
+    });
+    expect(day.routines.some((row) => row.id === routineTemplateId)).toBe(true);
+
+    const result = await owner.mutation(api.backfill.approvePastRoutine, {
+      householdId,
+      childId,
+      routineTemplateId,
+      date: "2026-06-15",
+      completedStepOrders: [1],
+    });
+
+    expect(result.earnedPoints).toBe(9);
+  });
+
   it("approves a past chore using the completion date period", async () => {
     const { t, owner, householdId, childId, choreId } = await setup();
 

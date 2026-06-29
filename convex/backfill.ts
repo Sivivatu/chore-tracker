@@ -85,7 +85,10 @@ export const listBackfillDay = query({
 
     const routines = await Promise.all(
       templates
-        .filter((template) => template.active)
+        .filter((template) => {
+          const instance = instances.find((row) => row.routineTemplateId === template._id);
+          return template.active || Boolean(instance);
+        })
         .map(async (template) => {
           const instance = instances.find((row) => row.routineTemplateId === template._id) ?? null;
           const templateSteps = await getTemplateSteps(ctx, template._id);
@@ -100,19 +103,27 @@ export const listBackfillDay = query({
             template,
             scheduled: isTemplateScheduledForDate(template, args.date),
             instance: instance ? { id: instance._id, ...instance } : null,
-            steps: templateSteps
-              .slice()
-              .sort((a, b) => a.order - b.order)
-              .map((step) => {
-                const existing = stepInstances.find((row) => row.snapshotOrder === step.order);
-                return {
-                  id: step._id,
-                  order: step.order,
-                  title: existing?.snapshotTitle ?? step.title,
-                  points: existing?.snapshotPoints ?? step.points,
-                  completed: Boolean(existing?.completedAt),
-                };
-              }),
+            steps: instance
+              ? stepInstances
+                  .slice()
+                  .sort((a, b) => a.snapshotOrder - b.snapshotOrder)
+                  .map((step) => ({
+                    id: step._id,
+                    order: step.snapshotOrder,
+                    title: step.snapshotTitle,
+                    points: step.snapshotPoints,
+                    completed: Boolean(step.completedAt),
+                  }))
+              : templateSteps
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((step) => ({
+                    id: step._id,
+                    order: step.order,
+                    title: step.title,
+                    points: step.points,
+                    completed: false,
+                  })),
           };
         }),
     );
@@ -165,7 +176,7 @@ export const approvePastRoutine = mutation({
     validateHouseholdDateBounds({ date: args.date, householdCreatedAt: household.createdAt });
 
     const template = await ctx.db.get(args.routineTemplateId);
-    if (!template || template.householdId !== args.householdId || !template.active) {
+    if (!template || template.householdId !== args.householdId) {
       throw new Error("Routine not found");
     }
 
@@ -175,6 +186,9 @@ export const approvePastRoutine = mutation({
     );
     const now = new Date().toISOString();
     let instance = await getExistingRoutineInstance({ ctx, ...args });
+    if (!template.active && !instance) {
+      throw new Error("Routine not found");
+    }
 
     if (instance?.status === "approved") {
       throw new Error("Routine has already awarded points for this date");
