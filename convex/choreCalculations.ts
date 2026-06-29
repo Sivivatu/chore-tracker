@@ -44,10 +44,7 @@ export function multiplierFor(settings: ChoreSettings, frequency: ChoreFrequency
   return settings.monthlyMultiplier;
 }
 
-export async function getChoreSettings(
-  ctx: QueryCtx | MutationCtx,
-  householdId: Id<"households">,
-) {
+export async function getChoreSettings(ctx: QueryCtx | MutationCtx, householdId: Id<"households">) {
   const stored = await ctx.db
     .query("choreSettings")
     .withIndex("by_household", (query) => query.eq("householdId", householdId))

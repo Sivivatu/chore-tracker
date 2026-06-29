@@ -1,6 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { type PropsWithChildren, useEffect, useRef, useState } from "react";
-import { CalendarCheck, ClipboardCheck, Home, KeyRound, ListChecks, Menu, Scale, Settings, Star, X } from "lucide-react";
+import {
+  CalendarCheck,
+  ClipboardCheck,
+  Home,
+  KeyRound,
+  ListChecks,
+  Menu,
+  Scale,
+  Settings,
+  Star,
+  X,
+} from "lucide-react";
 import { AccountControls } from "@/components/auth/AccountControls";
 import { hasActiveChildSession } from "@/lib/child-session";
 

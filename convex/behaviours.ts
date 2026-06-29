@@ -13,7 +13,11 @@ const categories = {
   ],
   negative: [
     { key: "not_listening", label: "Not listening", kind: "negative" as const },
-    { key: "refusing_instructions", label: "Not doing what they were told", kind: "negative" as const },
+    {
+      key: "refusing_instructions",
+      label: "Not doing what they were told",
+      kind: "negative" as const,
+    },
     { key: "not_tidying", label: "Not tidying up", kind: "negative" as const },
     { key: "unkind_words", label: "Unkind words", kind: "negative" as const },
     { key: "unsafe_behaviour", label: "Unsafe behaviour", kind: "negative" as const },
@@ -37,7 +41,8 @@ export const listForChild = query({
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
     const child = await ctx.db.get(args.childId);
-    if (!child || child.householdId !== args.householdId) throw new Error("Child profile not found");
+    if (!child || child.householdId !== args.householdId)
+      throw new Error("Child profile not found");
     const household = await ctx.db.get(args.householdId);
     if (!household) throw new Error("Household not found");
     validateHouseholdDateBounds({ date: args.fromDate, householdCreatedAt: household.createdAt });
@@ -73,7 +78,8 @@ export const create = mutation({
     const household = await ctx.db.get(args.householdId);
     if (!household) throw new Error("Household not found");
     const child = await ctx.db.get(args.childId);
-    if (!child || child.householdId !== args.householdId) throw new Error("Child profile not found");
+    if (!child || child.householdId !== args.householdId)
+      throw new Error("Child profile not found");
     validateHouseholdDateBounds({ date: args.date, householdCreatedAt: household.createdAt });
 
     const category = categories[args.kind].find((item) => item.key === args.categoryKey);

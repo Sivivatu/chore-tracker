@@ -110,6 +110,53 @@ describe("backfill", () => {
     );
   });
 
+  it("uses existing routine step snapshot points when approving an old instance", async () => {
+    const { t, owner, householdId, childId, routineTemplateId } = await setup();
+    await t.run(async (ctx) => {
+      const routineInstanceId = await ctx.db.insert("routineInstances", {
+        householdId,
+        childId,
+        routineTemplateId,
+        date: "2026-06-15",
+        status: "submitted",
+        snapshotName: "Morning",
+        snapshotType: "morning",
+        submittedAt: "2026-06-15T08:00:00.000Z",
+      });
+      await ctx.db.insert("stepInstances", {
+        householdId,
+        childId,
+        routineInstanceId,
+        snapshotTitle: "Old brush teeth",
+        snapshotDescription: "",
+        snapshotOrder: 1,
+        snapshotPoints: 11,
+        snapshotRequired: true,
+        snapshotIllustrationKey: "teeth",
+        accent: "#38bdf8",
+      });
+      const currentStep = await ctx.db
+        .query("choreSteps")
+        .withIndex("by_routine", (q) => q.eq("routineTemplateId", routineTemplateId))
+        .collect()
+        .then((steps) => steps.find((step) => step.order === 1));
+      if (!currentStep) throw new Error("Missing current step");
+      await ctx.db.patch(currentStep._id, { points: 99 });
+    });
+
+    const result = await owner.mutation(api.backfill.approvePastRoutine, {
+      householdId,
+      childId,
+      routineTemplateId,
+      date: "2026-06-15",
+      completedStepOrders: [1],
+    });
+
+    expect(result.earnedPoints).toBe(11);
+    const child = await t.run((ctx) => ctx.db.get(childId));
+    expect(child?.pointsBalance).toBe(11);
+  });
+
   it("approves a past chore using the completion date period", async () => {
     const { t, owner, householdId, childId, choreId } = await setup();
 

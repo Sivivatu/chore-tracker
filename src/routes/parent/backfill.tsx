@@ -48,12 +48,17 @@ export function ParentBackfillPage() {
   const maxDate = day?.bounds.maxDate ?? today;
 
   function selectedFor(routine: RoutineBackfill) {
-    return selectedSteps[routine.id] ?? routine.steps.filter((step) => step.completed).map((step) => step.order);
+    return (
+      selectedSteps[routine.id] ??
+      routine.steps.filter((step) => step.completed).map((step) => step.order)
+    );
   }
 
   function toggleStep(routine: RoutineBackfill, order: number) {
     setSelectedSteps((current) => {
-      const existing = current[routine.id] ?? routine.steps.filter((step) => step.completed).map((step) => step.order);
+      const existing =
+        current[routine.id] ??
+        routine.steps.filter((step) => step.completed).map((step) => step.order);
       return {
         ...current,
         [routine.id]: existing.includes(order)
@@ -142,8 +147,12 @@ export function ParentBackfillPage() {
               ))}
             </select>
           </label>
-          {error ? <p className="rounded-md bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p> : null}
-          {status ? <p className="rounded-md bg-teal/10 p-3 text-sm font-bold text-teal">{status}</p> : null}
+          {error ? (
+            <p className="rounded-md bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p>
+          ) : null}
+          {status ? (
+            <p className="rounded-md bg-teal/10 p-3 text-sm font-bold text-teal">{status}</p>
+          ) : null}
         </div>
       </Card>
 
@@ -155,7 +164,9 @@ export function ParentBackfillPage() {
             <Card>
               <h2 className="text-2xl font-black">Routines</h2>
               <div className="mt-4 grid gap-4">
-                {day.routines.length === 0 ? <p className="text-ink/65">No active routines yet.</p> : null}
+                {day.routines.length === 0 ? (
+                  <p className="text-ink/65">No active routines yet.</p>
+                ) : null}
                 {(day.routines as RoutineBackfill[]).map((routine) => {
                   const selected = selectedFor(routine);
                   const points = routine.steps
@@ -171,11 +182,16 @@ export function ParentBackfillPage() {
                             {routine.scheduled ? "Scheduled" : "Not scheduled"} for this date
                           </p>
                         </div>
-                        <span className="rounded-md bg-paper px-3 py-1 text-sm font-bold">{points} pts</span>
+                        <span className="rounded-md bg-paper px-3 py-1 text-sm font-bold">
+                          {points} pts
+                        </span>
                       </div>
                       <div className="mt-4 grid gap-2">
                         {routine.steps.map((step) => (
-                          <label key={step.order} className="flex items-center justify-between gap-3 rounded-md bg-paper p-3 text-sm font-bold">
+                          <label
+                            key={step.order}
+                            className="flex items-center justify-between gap-3 rounded-md bg-paper p-3 text-sm font-bold"
+                          >
                             <span className="flex items-center gap-2">
                               <input
                                 type="checkbox"
@@ -190,9 +206,15 @@ export function ParentBackfillPage() {
                         ))}
                       </div>
                       {approved ? (
-                        <p className="mt-3 text-sm font-bold text-ink/60">This routine has already awarded points.</p>
+                        <p className="mt-3 text-sm font-bold text-ink/60">
+                          This routine has already awarded points.
+                        </p>
                       ) : (
-                        <Button className="mt-4" onClick={() => saveRoutine(routine)} disabled={savingKey === `routine-${routine.id}`}>
+                        <Button
+                          className="mt-4"
+                          onClick={() => saveRoutine(routine)}
+                          disabled={savingKey === `routine-${routine.id}`}
+                        >
                           Approve past routine
                         </Button>
                       )}
@@ -204,9 +226,14 @@ export function ParentBackfillPage() {
             <Card>
               <h2 className="text-2xl font-black">Chores</h2>
               <div className="mt-4 grid gap-4">
-                {day.chores.length === 0 ? <p className="text-ink/65">No active chores yet.</p> : null}
+                {day.chores.length === 0 ? (
+                  <p className="text-ink/65">No active chores yet.</p>
+                ) : null}
                 {(day.chores as ChoreBackfill[]).map((chore) => (
-                  <div key={chore.id} className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-ink/10 p-4">
+                  <div
+                    key={chore.id}
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-ink/10 p-4"
+                  >
                     <div>
                       <h3 className="text-xl font-black">{chore.title}</h3>
                       <p className="text-sm text-ink/60">
@@ -215,7 +242,10 @@ export function ParentBackfillPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-black">{chore.earnedPoints} pts</span>
-                      <Button onClick={() => saveChore(chore)} disabled={savingKey === `chore-${chore.id}`}>
+                      <Button
+                        onClick={() => saveChore(chore)}
+                        disabled={savingKey === `chore-${chore.id}`}
+                      >
                         Approve past chore
                       </Button>
                     </div>

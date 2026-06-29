@@ -46,7 +46,9 @@ async function getExistingRoutineInstance(args: {
     )
     .collect();
 
-  return instances.find((instance) => instance.routineTemplateId === args.routineTemplateId) ?? null;
+  return (
+    instances.find((instance) => instance.routineTemplateId === args.routineTemplateId) ?? null
+  );
 }
 
 export const listBackfillDay = query({
@@ -120,7 +122,12 @@ export const listBackfillDay = query({
         .filter((chore) => chore.active)
         .map(async (chore) => {
           const periodKey = periodKeyFor(chore.frequency, dateFromDateKey(args.date));
-          const repeatCount = await countPriorActiveSubmissions(ctx, args.childId, chore._id, periodKey);
+          const repeatCount = await countPriorActiveSubmissions(
+            ctx,
+            args.childId,
+            chore._id,
+            periodKey,
+          );
           const multiplier = multiplierFor(settings, chore.frequency);
           return {
             id: chore._id,
@@ -166,20 +173,24 @@ export const approvePastRoutine = mutation({
     const steps = (await getTemplateSteps(ctx, args.routineTemplateId)).sort(
       (a, b) => a.order - b.order,
     );
-    const earnedPoints = steps
-      .filter((step) => selectedOrders.has(step.order))
-      .reduce((total, step) => total + step.points, 0);
     const now = new Date().toISOString();
     let instance = await getExistingRoutineInstance({ ctx, ...args });
 
     if (instance?.status === "approved") {
       throw new Error("Routine has already awarded points for this date");
     }
-    if (instance && !["not_started", "in_progress", "submitted", "rejected"].includes(instance.status)) {
+    if (
+      instance &&
+      !["not_started", "in_progress", "submitted", "rejected"].includes(instance.status)
+    ) {
       throw new Error("Routine cannot be backfilled in its current state");
     }
 
+    let earnedPoints = 0;
     if (!instance) {
+      earnedPoints = steps
+        .filter((step) => selectedOrders.has(step.order))
+        .reduce((total, step) => total + step.points, 0);
       const routineInstanceId = await ctx.db.insert("routineInstances", {
         householdId: args.householdId,
         childId: args.childId,
@@ -214,6 +225,9 @@ export const approvePastRoutine = mutation({
         .query("stepInstances")
         .withIndex("by_routine_instance", (q) => q.eq("routineInstanceId", existingInstance._id))
         .collect();
+      earnedPoints = instanceSteps
+        .filter((step) => selectedOrders.has(step.snapshotOrder))
+        .reduce((total, step) => total + step.snapshotPoints, 0);
       for (const step of instanceSteps) {
         await ctx.db.patch(step._id, {
           completedAt: selectedOrders.has(step.snapshotOrder) ? now : undefined,
@@ -237,7 +251,12 @@ export const approvePastRoutine = mutation({
       actorId: parent._id,
       action: "Past routine completion added",
       createdAt: now,
-      metadata: { childId: args.childId, routineTemplateId: args.routineTemplateId, date: args.date, earnedPoints },
+      metadata: {
+        childId: args.childId,
+        routineTemplateId: args.routineTemplateId,
+        date: args.date,
+        earnedPoints,
+      },
     });
 
     return { earnedPoints };
@@ -268,7 +287,12 @@ export const approvePastChore = mutation({
 
     const settings = await getChoreSettings(ctx, args.householdId);
     const periodKey = periodKeyFor(chore.frequency, dateFromDateKey(args.completedOnDate));
-    const repeatCount = await countPriorActiveSubmissions(ctx, args.childId, args.choreId, periodKey);
+    const repeatCount = await countPriorActiveSubmissions(
+      ctx,
+      args.childId,
+      args.choreId,
+      periodKey,
+    );
     const multiplier = multiplierFor(settings, chore.frequency);
     const calculated = calculateEarnedPoints({
       basePoints: chore.basePoints,
@@ -305,7 +329,13 @@ export const approvePastChore = mutation({
       actorId: parent._id,
       action: "Past chore completion added",
       createdAt: now,
-      metadata: { submissionId, childId: args.childId, choreId: args.choreId, completedOnDate: args.completedOnDate, earnedPoints: calculated.earnedPoints },
+      metadata: {
+        submissionId,
+        childId: args.childId,
+        choreId: args.choreId,
+        completedOnDate: args.completedOnDate,
+        earnedPoints: calculated.earnedPoints,
+      },
     });
 
     return { submissionId, earnedPoints: calculated.earnedPoints };

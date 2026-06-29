@@ -77,61 +77,121 @@ export function ParentBehaviourPage() {
         <form onSubmit={submit} className="mt-6 grid gap-4">
           <label className="grid gap-2 text-sm font-bold">
             Child
-            <select value={selectedChildId ?? ""} onChange={(event) => setChildId(event.target.value as Id<"children">)} className="h-12 rounded-md border border-ink/20 bg-white px-3 text-base">
+            <select
+              value={selectedChildId ?? ""}
+              onChange={(event) => setChildId(event.target.value as Id<"children">)}
+              className="h-12 rounded-md border border-ink/20 bg-white px-3 text-base"
+            >
               {(context?.children ?? []).map((child) => (
-                <option key={child._id} value={child._id}>{child.name}</option>
+                <option key={child._id} value={child._id}>
+                  {child.name}
+                </option>
               ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-bold">
             Date
-            <input type="date" min={minDate} max={today} value={date} onChange={(event) => setDate(event.target.value)} className="h-12 rounded-md border border-ink/20 px-3 text-base" />
+            <input
+              type="date"
+              min={minDate}
+              max={today}
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              className="h-12 rounded-md border border-ink/20 px-3 text-base"
+            />
           </label>
           <div className="grid grid-cols-2 gap-2 rounded-md bg-paper p-1">
-            <button type="button" className={`rounded-md px-3 py-2 text-sm font-black ${kind === "positive" ? "bg-teal text-white" : ""}`} onClick={() => { setKind("positive"); setCategoryKey(""); }}>
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-black ${kind === "positive" ? "bg-teal text-white" : ""}`}
+              onClick={() => {
+                setKind("positive");
+                setCategoryKey("");
+              }}
+            >
               Good
             </button>
-            <button type="button" className={`rounded-md px-3 py-2 text-sm font-black ${kind === "negative" ? "bg-coral text-white" : ""}`} onClick={() => { setKind("negative"); setCategoryKey(""); }}>
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-black ${kind === "negative" ? "bg-coral text-white" : ""}`}
+              onClick={() => {
+                setKind("negative");
+                setCategoryKey("");
+              }}
+            >
               Bad
             </button>
           </div>
           <label className="grid gap-2 text-sm font-bold">
             Category
-            <select value={selectedCategory} onChange={(event) => setCategoryKey(event.target.value)} className="h-12 rounded-md border border-ink/20 bg-white px-3 text-base">
+            <select
+              value={selectedCategory}
+              onChange={(event) => setCategoryKey(event.target.value)}
+              className="h-12 rounded-md border border-ink/20 bg-white px-3 text-base"
+            >
               {visibleCategories.map((category) => (
-                <option key={category.key} value={category.key}>{category.label}</option>
+                <option key={category.key} value={category.key}>
+                  {category.label}
+                </option>
               ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-bold">
             What happened?
-            <textarea value={note} onChange={(event) => setNote(event.target.value)} className="min-h-24 rounded-md border border-ink/20 px-3 py-2 text-base" />
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="min-h-24 rounded-md border border-ink/20 px-3 py-2 text-base"
+            />
           </label>
           <label className="grid gap-2 text-sm font-bold">
             Points {kind === "positive" ? `+${points || 0}` : `-${points || 0}`}
-            <input type="number" min={1} step={1} value={points} onChange={(event) => setPoints(Number(event.target.value))} className="h-12 rounded-md border border-ink/20 px-3 text-base" />
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={points}
+              onChange={(event) => setPoints(Number(event.target.value))}
+              className="h-12 rounded-md border border-ink/20 px-3 text-base"
+            />
           </label>
-          {error ? <p className="rounded-md bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p> : null}
-          {status ? <p className="rounded-md bg-teal/10 p-3 text-sm font-bold text-teal">{status}</p> : null}
-          <Button type="submit">{kind === "positive" ? "Add positive points" : "Add negative points"}</Button>
+          {error ? (
+            <p className="rounded-md bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p>
+          ) : null}
+          {status ? (
+            <p className="rounded-md bg-teal/10 p-3 text-sm font-bold text-teal">{status}</p>
+          ) : null}
+          <Button type="submit">
+            {kind === "positive" ? "Add positive points" : "Add negative points"}
+          </Button>
         </form>
       </Card>
 
       <Card>
         <h2 className="text-2xl font-black">Recent behaviour history</h2>
         <div className="mt-4 grid gap-3">
-          {(history ?? []).length === 0 ? <p className="text-ink/65">No behaviour entries yet.</p> : null}
+          {(history ?? []).length === 0 ? (
+            <p className="text-ink/65">No behaviour entries yet.</p>
+          ) : null}
           {(history ?? []).map((entry) => {
             const child = context?.children?.find((item) => item._id === entry.childId);
             return (
-              <div key={entry.id} className={`rounded-md border p-4 ${entry.pointsDelta >= 0 ? "border-teal/30 bg-teal/5" : "border-coral/30 bg-coral/5"}`}>
+              <div
+                key={entry.id}
+                className={`rounded-md border p-4 ${entry.pointsDelta >= 0 ? "border-teal/30 bg-teal/5" : "border-coral/30 bg-coral/5"}`}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-ink/60">{entry.date} · {child?.name ?? "Child"}</p>
+                    <p className="text-sm font-bold text-ink/60">
+                      {entry.date} · {child?.name ?? "Child"}
+                    </p>
                     <h3 className="text-lg font-black">{entry.categoryLabel}</h3>
                   </div>
-                  <span className={`text-xl font-black ${entry.pointsDelta >= 0 ? "text-teal" : "text-coral"}`}>
-                    {entry.pointsDelta > 0 ? "+" : ""}{entry.pointsDelta}
+                  <span
+                    className={`text-xl font-black ${entry.pointsDelta >= 0 ? "text-teal" : "text-coral"}`}
+                  >
+                    {entry.pointsDelta > 0 ? "+" : ""}
+                    {entry.pointsDelta}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-ink/75">{entry.note}</p>

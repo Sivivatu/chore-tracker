@@ -188,6 +188,7 @@ export default defineSchema({
     .index("by_household", ["householdId"])
     .index("by_household_and_status", ["householdId", "status"])
     .index("by_household_and_approvedAt", ["householdId", "approvedAt"])
+    .index("by_household_and_completedOnDate", ["householdId", "completedOnDate"])
     .index("by_household_and_period", ["householdId", "periodKey"])
     .index("by_child_and_chore_and_period", ["childId", "choreId", "periodKey"]),
   behaviourEntries: defineTable({

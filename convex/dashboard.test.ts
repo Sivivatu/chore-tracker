@@ -325,6 +325,70 @@ describe("dashboard weekly overview", () => {
     expect(approvalWeek.summary.pointsEarned).toBe(0);
   });
 
+  it("finds weekly chore points after many older household submissions", async () => {
+    const { t, owner, householdId, parentId, childId } = await createHousehold();
+    await t.run(async (ctx) => {
+      const choreId = await ctx.db.insert("chores", {
+        householdId,
+        title: "Water plants",
+        description: "Water the kitchen plants.",
+        frequency: "daily",
+        basePoints: 1,
+        active: true,
+        createdByParentId: parentId,
+      });
+      for (let index = 0; index < 210; index += 1) {
+        const day = String((index % 28) + 1).padStart(2, "0");
+        await ctx.db.insert("choreSubmissions", {
+          householdId,
+          childId,
+          choreId,
+          periodKey: `2026-05-${day}`,
+          status: "approved",
+          snapshotTitle: "Water plants",
+          snapshotDescription: "Water the kitchen plants.",
+          snapshotFrequency: "daily",
+          snapshotBasePoints: 1,
+          snapshotMultiplier: 1,
+          repeatCount: 0,
+          repeatAdjustment: 1,
+          earnedPoints: 1,
+          completedOnDate: `2026-05-${day}`,
+          submittedAt: `2026-05-${day}T12:00:00.000Z`,
+          approvedAt: `2026-05-${day}T12:00:00.000Z`,
+          approvedByParentId: parentId,
+        });
+      }
+      await ctx.db.insert("choreSubmissions", {
+        householdId,
+        childId,
+        choreId,
+        periodKey: "2026-06-15",
+        status: "approved",
+        snapshotTitle: "Water plants",
+        snapshotDescription: "Water the kitchen plants.",
+        snapshotFrequency: "daily",
+        snapshotBasePoints: 1,
+        snapshotMultiplier: 1,
+        repeatCount: 0,
+        repeatAdjustment: 1,
+        earnedPoints: 8,
+        completedOnDate: "2026-06-15",
+        submittedAt: "2026-06-29T12:00:00.000Z",
+        approvedAt: "2026-06-29T12:00:00.000Z",
+        approvedByParentId: parentId,
+      });
+    });
+
+    const overview = await owner.query(api.dashboard.weeklyOverview, {
+      householdId,
+      weekStart: "2026-06-15",
+      today: "2026-06-29",
+    });
+
+    expect(overview.summary.pointsEarned).toBe(8);
+  });
+
   it("rejects unauthenticated and invalid date requests", async () => {
     const { t, householdId } = await createHousehold();
 
