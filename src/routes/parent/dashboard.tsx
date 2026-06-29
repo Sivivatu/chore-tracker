@@ -31,21 +31,18 @@ export function ParentDashboardPage() {
   const summary = dashboard?.summary;
   const isLoading =
     context === undefined || (Boolean(context?.household) && dashboard === undefined);
-  const hasActivity =
-    Boolean(
-      dashboard?.days.some(
-        (day) =>
-          day.scheduled > 0 ||
-          day.approved > 0 ||
-          day.submitted > 0 ||
-          day.rejected > 0 ||
-          day.paused > 0,
-      ) ||
-        (summary &&
-          (summary.submittedCount > 0 ||
-            summary.pointsEarned > 0 ||
-            summary.pausedCount > 0)),
-    );
+  const hasActivity = Boolean(
+    dashboard?.days.some(
+      (day) =>
+        day.scheduled > 0 ||
+        day.approved > 0 ||
+        day.submitted > 0 ||
+        day.rejected > 0 ||
+        day.paused > 0,
+    ) ||
+    (summary &&
+      (summary.submittedCount > 0 || summary.pointsEarned > 0 || summary.pausedCount > 0)),
+  );
   const canGoBack = Boolean(dashboard && selectedWeekStart > dashboard.earliestWeekStart);
   const canGoForward = selectedWeekStart < currentWeekStart;
 
