@@ -50,6 +50,7 @@ export const weeklyOverview = query({
 
     const signupDate = toDateKey(new Date(parent._creationTime));
     const currentWeekStart = mondayFor(args.today);
+    const currentWeekEnd = addDays(currentWeekStart, 6);
     const requestedWeekStart = mondayFor(args.weekStart);
     const earliestRoutineInstances = await ctx.db
       .query("routineInstances")
@@ -63,7 +64,7 @@ export const weeklyOverview = query({
         query
           .eq("householdId", args.householdId)
           .gte("completedOnDate", "")
-          .lte("completedOnDate", addDays(currentWeekStart, 6)),
+          .lte("completedOnDate", currentWeekEnd),
       )
       .take(MAX_WEEKLY_CHORES);
     const legacyChoreActivityForBounds = await ctx.db
@@ -72,7 +73,7 @@ export const weeklyOverview = query({
         query
           .eq("householdId", args.householdId)
           .gt("approvedAt", undefined)
-          .lte("approvedAt", `${addDays(currentWeekStart, 6)}T23:59:59.999Z`),
+          .lte("approvedAt", `${currentWeekEnd}T23:59:59.999Z`),
       )
       .take(MAX_WEEKLY_CHORES);
     const earliestApprovedChoreDate = [
@@ -81,8 +82,14 @@ export const weeklyOverview = query({
     ]
       .filter((submission) => submission.status === "approved")
       .map((submission) => submission.completedOnDate ?? submission.approvedAt?.slice(0, 10))
-      .filter((date): date is string => Boolean(date && date <= addDays(currentWeekStart, 6)))
+      .filter((date): date is string => Boolean(date && date <= currentWeekEnd))
       .sort()[0];
+    const earliestBehaviourEntries = await ctx.db
+      .query("behaviourEntries")
+      .withIndex("by_household_and_date", (query) =>
+        query.eq("householdId", args.householdId).lte("date", currentWeekEnd),
+      )
+      .take(1);
     const earliestHolidayPauses = await ctx.db
       .query("holidayPauses")
       .withIndex("by_household", (query) => query.eq("householdId", args.householdId))
@@ -91,8 +98,9 @@ export const weeklyOverview = query({
       signupDate,
       earliestRoutineInstances[0]?.date,
       earliestApprovedChoreDate,
+      earliestBehaviourEntries[0]?.date,
       earliestHolidayPauses
-        .filter((pause) => pause.startDate <= addDays(currentWeekStart, 6))
+        .filter((pause) => pause.startDate <= currentWeekEnd)
         .sort((a, b) => a.startDate.localeCompare(b.startDate))[0]?.startDate,
     ]
       .filter((date): date is string => Boolean(date))

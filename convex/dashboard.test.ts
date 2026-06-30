@@ -277,6 +277,41 @@ describe("dashboard weekly overview", () => {
     expect(overview.summary.pointsEarned).toBe(13);
   });
 
+  it("uses behaviour-only history when calculating earliest dashboard week", async () => {
+    const { t, householdId, parentId, childId } = await createHousehold();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("parents", {
+        householdId,
+        clerkUserId: identity("later-parent").tokenIdentifier,
+        name: "Taylor",
+      });
+      await ctx.db.insert("behaviourEntries", {
+        householdId,
+        childId,
+        parentId,
+        date: "2026-06-01",
+        kind: "positive",
+        categoryKey: "kindness",
+        categoryLabel: "Kindness",
+        note: "Helped without being asked",
+        pointsDelta: 3,
+        createdAt: "2026-06-01T15:00:00.000Z",
+      });
+    });
+
+    const overview = await t
+      .withIdentity(identity("later-parent"))
+      .query(api.dashboard.weeklyOverview, {
+        householdId,
+        weekStart: "2026-06-01",
+        today: "2026-06-19",
+      });
+
+    expect(overview.weekStart).toBe("2026-06-01");
+    expect(overview.earliestWeekStart).toBe("2026-06-01");
+    expect(overview.summary.pointsEarned).toBe(3);
+  });
+
   it("attributes backfilled chore points to completedOnDate week", async () => {
     const { t, owner, householdId, parentId, childId } = await createHousehold();
     await t.run(async (ctx) => {
