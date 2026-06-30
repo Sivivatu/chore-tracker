@@ -21,10 +21,7 @@ export async function requireParent(ctx: Ctx) {
   return parent;
 }
 
-export async function currentParent(
-  ctx: Ctx,
-  options: { allowUnauthenticated?: boolean } = {},
-) {
+export async function currentParent(ctx: Ctx, options: { allowUnauthenticated?: boolean } = {}) {
   const identity = await ctx.auth.getUserIdentity();
   const clerkUserId = identity?.tokenIdentifier ?? getE2EClerkUserId();
   if (!clerkUserId) {

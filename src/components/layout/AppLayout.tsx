@@ -1,6 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { type PropsWithChildren, useEffect, useRef, useState } from "react";
-import { ClipboardCheck, Home, KeyRound, ListChecks, Menu, Settings, Star, X } from "lucide-react";
+import {
+  CalendarCheck,
+  ClipboardCheck,
+  Home,
+  KeyRound,
+  ListChecks,
+  Menu,
+  Scale,
+  Settings,
+  Star,
+  X,
+} from "lucide-react";
 import { AccountControls } from "@/components/auth/AccountControls";
 import { hasActiveChildSession } from "@/lib/child-session";
 
@@ -9,6 +20,8 @@ const nav = [
   { to: "/parent/routines", label: "Routines", icon: ClipboardCheck },
   { to: "/parent/approvals", label: "Approvals", icon: KeyRound },
   { to: "/parent/chores", label: "Chores", icon: ListChecks },
+  { to: "/parent/backfill", label: "Backfill", icon: CalendarCheck },
+  { to: "/parent/behaviour", label: "Behaviour", icon: Scale },
   { to: "/parent/rewards", label: "Rewards", icon: Star },
   { to: "/parent/settings", label: "Settings", icon: Settings },
 ];

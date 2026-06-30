@@ -116,3 +116,25 @@ export type AuditEvent = {
   action: string;
   createdAt: string;
 };
+
+export type BehaviourKind = "positive" | "negative";
+
+export type BehaviourCategory = {
+  key: string;
+  label: string;
+  kind: BehaviourKind;
+};
+
+export type BehaviourEntry = {
+  id: string;
+  householdId: string;
+  childId: string;
+  parentId: string;
+  date: string;
+  kind: BehaviourKind;
+  categoryKey: string;
+  categoryLabel: string;
+  note: string;
+  pointsDelta: number;
+  createdAt: string;
+};

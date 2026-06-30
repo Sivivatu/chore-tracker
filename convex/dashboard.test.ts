@@ -148,6 +148,7 @@ async function seedDashboardActivity({
       repeatCount: 1,
       repeatAdjustment: 0,
       earnedPoints: 6,
+      completedOnDate: "2026-06-16",
       submittedAt: "2026-06-16T12:00:00.000Z",
       approvedAt: "2026-06-16T13:00:00.000Z",
       approvedByParentId: parentId,
@@ -166,6 +167,7 @@ async function seedDashboardActivity({
       repeatCount: 1,
       repeatAdjustment: 0,
       earnedPoints: 99,
+      completedOnDate: "2026-06-10",
       submittedAt: "2026-06-10T12:00:00.000Z",
       approvedAt: "2026-06-10T13:00:00.000Z",
       approvedByParentId: parentId,
@@ -234,6 +236,192 @@ describe("dashboard weekly overview", () => {
         today: "2026-06-19",
       }),
     ).rejects.toThrow("Household access denied");
+  });
+
+  it("includes behaviour points in weekly points earned", async () => {
+    const { t, owner, householdId, parentId, childId } = await createHousehold();
+    await seedDashboardActivity({ t, householdId, parentId, childId });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("behaviourEntries", {
+        householdId,
+        childId,
+        parentId,
+        date: "2026-06-16",
+        kind: "positive",
+        categoryKey: "kindness",
+        categoryLabel: "Kindness",
+        note: "Shared toys",
+        pointsDelta: 4,
+        createdAt: "2026-06-16T15:00:00.000Z",
+      });
+      await ctx.db.insert("behaviourEntries", {
+        householdId,
+        childId,
+        parentId,
+        date: "2026-06-17",
+        kind: "negative",
+        categoryKey: "not_listening",
+        categoryLabel: "Not listening",
+        note: "Ignored bedtime",
+        pointsDelta: -2,
+        createdAt: "2026-06-17T15:00:00.000Z",
+      });
+    });
+
+    const overview = await owner.query(api.dashboard.weeklyOverview, {
+      householdId,
+      weekStart: "2026-06-15",
+      today: "2026-06-19",
+    });
+
+    expect(overview.summary.pointsEarned).toBe(13);
+  });
+
+  it("uses behaviour-only history when calculating earliest dashboard week", async () => {
+    const { t, householdId, parentId, childId } = await createHousehold();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("parents", {
+        householdId,
+        clerkUserId: identity("later-parent").tokenIdentifier,
+        name: "Taylor",
+      });
+      await ctx.db.insert("behaviourEntries", {
+        householdId,
+        childId,
+        parentId,
+        date: "2026-06-01",
+        kind: "positive",
+        categoryKey: "kindness",
+        categoryLabel: "Kindness",
+        note: "Helped without being asked",
+        pointsDelta: 3,
+        createdAt: "2026-06-01T15:00:00.000Z",
+      });
+    });
+
+    const overview = await t
+      .withIdentity(identity("later-parent"))
+      .query(api.dashboard.weeklyOverview, {
+        householdId,
+        weekStart: "2026-06-01",
+        today: "2026-06-19",
+      });
+
+    expect(overview.weekStart).toBe("2026-06-01");
+    expect(overview.earliestWeekStart).toBe("2026-06-01");
+    expect(overview.summary.pointsEarned).toBe(3);
+  });
+
+  it("attributes backfilled chore points to completedOnDate week", async () => {
+    const { t, owner, householdId, parentId, childId } = await createHousehold();
+    await t.run(async (ctx) => {
+      const choreId = await ctx.db.insert("chores", {
+        householdId,
+        title: "Water plants",
+        description: "Water the kitchen plants.",
+        frequency: "weekly",
+        basePoints: 2,
+        active: true,
+        createdByParentId: parentId,
+      });
+      await ctx.db.insert("choreSubmissions", {
+        householdId,
+        childId,
+        choreId,
+        periodKey: "2026-W25",
+        status: "approved",
+        snapshotTitle: "Water plants",
+        snapshotDescription: "Water the kitchen plants.",
+        snapshotFrequency: "weekly",
+        snapshotBasePoints: 2,
+        snapshotMultiplier: 3,
+        repeatCount: 0,
+        repeatAdjustment: 1,
+        earnedPoints: 6,
+        completedOnDate: "2026-06-15",
+        submittedAt: "2026-06-25T12:00:00.000Z",
+        approvedAt: "2026-06-25T12:00:00.000Z",
+        approvedByParentId: parentId,
+      });
+    });
+
+    const completionWeek = await owner.query(api.dashboard.weeklyOverview, {
+      householdId,
+      weekStart: "2026-06-15",
+      today: "2026-06-25",
+    });
+    const approvalWeek = await owner.query(api.dashboard.weeklyOverview, {
+      householdId,
+      weekStart: "2026-06-22",
+      today: "2026-06-25",
+    });
+
+    expect(completionWeek.summary.pointsEarned).toBe(6);
+    expect(approvalWeek.summary.pointsEarned).toBe(0);
+  });
+
+  it("finds weekly chore points after many older household submissions", async () => {
+    const { t, owner, householdId, parentId, childId } = await createHousehold();
+    await t.run(async (ctx) => {
+      const choreId = await ctx.db.insert("chores", {
+        householdId,
+        title: "Water plants",
+        description: "Water the kitchen plants.",
+        frequency: "daily",
+        basePoints: 1,
+        active: true,
+        createdByParentId: parentId,
+      });
+      for (let index = 0; index < 210; index += 1) {
+        const day = String((index % 28) + 1).padStart(2, "0");
+        await ctx.db.insert("choreSubmissions", {
+          householdId,
+          childId,
+          choreId,
+          periodKey: `2026-05-${day}`,
+          status: "approved",
+          snapshotTitle: "Water plants",
+          snapshotDescription: "Water the kitchen plants.",
+          snapshotFrequency: "daily",
+          snapshotBasePoints: 1,
+          snapshotMultiplier: 1,
+          repeatCount: 0,
+          repeatAdjustment: 1,
+          earnedPoints: 1,
+          completedOnDate: `2026-05-${day}`,
+          submittedAt: `2026-05-${day}T12:00:00.000Z`,
+          approvedAt: `2026-05-${day}T12:00:00.000Z`,
+          approvedByParentId: parentId,
+        });
+      }
+      await ctx.db.insert("choreSubmissions", {
+        householdId,
+        childId,
+        choreId,
+        periodKey: "2026-06-15",
+        status: "approved",
+        snapshotTitle: "Water plants",
+        snapshotDescription: "Water the kitchen plants.",
+        snapshotFrequency: "daily",
+        snapshotBasePoints: 1,
+        snapshotMultiplier: 1,
+        repeatCount: 0,
+        repeatAdjustment: 1,
+        earnedPoints: 8,
+        completedOnDate: "2026-06-15",
+        submittedAt: "2026-06-29T12:00:00.000Z",
+        approvedAt: "2026-06-29T12:00:00.000Z",
+        approvedByParentId: parentId,
+      });
+    });
+
+    const overview = await owner.query(api.dashboard.weeklyOverview, {
+      householdId,
+      weekStart: "2026-06-15",
+      today: "2026-06-29",
+    });
+
+    expect(overview.summary.pointsEarned).toBe(8);
   });
 
   it("rejects unauthenticated and invalid date requests", async () => {

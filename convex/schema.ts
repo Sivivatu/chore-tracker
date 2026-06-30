@@ -178,6 +178,7 @@ export default defineSchema({
     repeatCount: v.number(),
     repeatAdjustment: v.number(),
     earnedPoints: v.number(),
+    completedOnDate: v.optional(v.string()),
     submittedAt: v.string(),
     approvedAt: v.optional(v.string()),
     approvedByParentId: v.optional(v.id("parents")),
@@ -187,7 +188,23 @@ export default defineSchema({
     .index("by_household", ["householdId"])
     .index("by_household_and_status", ["householdId", "status"])
     .index("by_household_and_approvedAt", ["householdId", "approvedAt"])
+    .index("by_household_and_completedOnDate", ["householdId", "completedOnDate"])
+    .index("by_household_and_period", ["householdId", "periodKey"])
     .index("by_child_and_chore_and_period", ["childId", "choreId", "periodKey"]),
+  behaviourEntries: defineTable({
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    parentId: v.id("parents"),
+    date: v.string(),
+    kind: v.union(v.literal("positive"), v.literal("negative")),
+    categoryKey: v.string(),
+    categoryLabel: v.string(),
+    note: v.string(),
+    pointsDelta: v.number(),
+    createdAt: v.string(),
+  })
+    .index("by_household_and_date", ["householdId", "date"])
+    .index("by_child_and_date", ["childId", "date"]),
   choreSettings: defineTable({
     householdId: v.id("households"),
     dailyMultiplier: v.number(),

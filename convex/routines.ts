@@ -324,10 +324,7 @@ export const listTodayWithSteps = query({
       ? await ctx.db
           .query("routineInstances")
           .withIndex("by_household_date_and_child", (query) =>
-            query
-              .eq("householdId", args.householdId)
-              .eq("date", args.date)
-              .eq("childId", childId),
+            query.eq("householdId", args.householdId).eq("date", args.date).eq("childId", childId),
           )
           .collect()
       : await ctx.db
