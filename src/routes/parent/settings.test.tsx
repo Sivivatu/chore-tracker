@@ -6,13 +6,14 @@ import { ParentSettingsPage } from "./settings";
 const convexState = vi.hoisted(() => ({
   setParentLockPin: vi.fn(),
   updateHouseholdIdentity: vi.fn(),
+  updateHouseholdTimeZone: vi.fn(),
   updateParentIdentity: vi.fn(),
   updateChildIdentity: vi.fn(),
   upsertChoreSettings: vi.fn(),
   createInvitation: vi.fn(),
   revokeInvitation: vi.fn(),
   context: {
-    household: { _id: "household-1", name: "The Parker Household" },
+    household: { _id: "household-1", name: "The Parker Household", timeZone: "Europe/London" },
     parent: {
       _id: "parent-1",
       householdId: "household-1",
@@ -60,6 +61,7 @@ const convexState = vi.hoisted(() => ({
 
 vi.mock("convex/react", () => ({
   useMutation: (mutation: { _name?: string }) => {
+    if (mutation._name?.includes("updateHouseholdTimeZone")) return convexState.updateHouseholdTimeZone;
     if (mutation._name?.includes("updateHouseholdIdentity")) {
       return convexState.updateHouseholdIdentity;
     }
@@ -88,6 +90,7 @@ vi.mock("../../../convex/_generated/api", () => ({
       parentLockStatus: { _name: "parentLockStatus" },
       setParentLockPin: { _name: "setParentLockPin" },
       updateHouseholdIdentity: { _name: "updateHouseholdIdentity" },
+      updateHouseholdTimeZone: { _name: "updateHouseholdTimeZone" },
       updateParentIdentity: { _name: "updateParentIdentity" },
       updateChildIdentity: { _name: "updateChildIdentity" },
     },
@@ -107,12 +110,14 @@ describe("ParentSettingsPage", () => {
   beforeEach(() => {
     convexState.setParentLockPin.mockReset();
     convexState.updateHouseholdIdentity.mockReset();
+    convexState.updateHouseholdTimeZone.mockReset();
     convexState.updateParentIdentity.mockReset();
     convexState.updateChildIdentity.mockReset();
     convexState.upsertChoreSettings.mockReset();
     convexState.createInvitation.mockReset();
     convexState.revokeInvitation.mockReset();
     convexState.setParentLockPin.mockResolvedValue({ configured: true });
+    convexState.updateHouseholdTimeZone.mockResolvedValue(null);
     convexState.updateHouseholdIdentity.mockResolvedValue({});
     convexState.updateParentIdentity.mockResolvedValue({});
     convexState.updateChildIdentity.mockResolvedValue({});

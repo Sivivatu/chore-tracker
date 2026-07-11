@@ -27,6 +27,7 @@ export default defineSchema({
     name: v.string(),
     createdAt: v.string(),
     parentLockPinHash: v.optional(v.string()),
+    timeZone: v.optional(v.string()),
   }),
   parents: defineTable({
     householdId: v.id("households"),
@@ -56,6 +57,15 @@ export default defineSchema({
     avatarPreset: v.optional(v.string()),
     pointsBalance: v.number(),
   }).index("by_household", ["householdId"]),
+  childModeSessions: defineTable({
+    token: v.string(),
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    createdAt: v.string(),
+    expiresAt: v.string(),
+  })
+    .index("by_token", ["token"])
+    .index("by_child", ["childId"]),
   routineTemplates: defineTable({
     householdId: v.id("households"),
     name: v.string(),
@@ -122,6 +132,8 @@ export default defineSchema({
       v.literal("custom"),
     ),
     submittedAt: v.optional(v.string()),
+    lastSubmittedAt: v.optional(v.string()),
+    submissionRevision: v.optional(v.number()),
     approvedAt: v.optional(v.string()),
     approvedByParentId: v.optional(v.id("parents")),
     earnedPoints: v.optional(v.number()),

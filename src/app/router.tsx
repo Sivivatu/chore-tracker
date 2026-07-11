@@ -16,6 +16,7 @@ import { ParentInvitePage } from "@/routes/invite";
 import { ParentDashboardPage } from "@/routes/parent/dashboard";
 import { ParentRoutinesPage } from "@/routes/parent/routines";
 import { ParentApprovalsPage } from "@/routes/parent/approvals";
+import { ParentApprovalReviewPage } from "@/routes/parent/approval-review";
 import { ParentChoresPage } from "@/routes/parent/chores";
 import { ParentBackfillPage } from "@/routes/parent/backfill";
 import { ParentBehaviourPage } from "@/routes/parent/behaviour";
@@ -123,6 +124,11 @@ const routeTree = rootRoute.addChildren([
       getParentRoute: () => parentRoute,
       path: "/approvals",
       component: ParentApprovalsPage,
+    }),
+    createRoute({
+      getParentRoute: () => parentRoute,
+      path: "/approvals/$routineInstanceId",
+      component: ParentApprovalReviewPage,
     }),
     createRoute({
       getParentRoute: () => parentRoute,

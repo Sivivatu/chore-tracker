@@ -6,6 +6,7 @@ import { ChildRoutinePage } from "./routine";
 const convexState = vi.hoisted(() => ({
   saveRoutineProgress: vi.fn(),
   submitRoutine: vi.fn(),
+  updateSubmittedRoutine: vi.fn(),
   context: {
     household: { _id: "household-1", name: "The Parker Household" },
   },
@@ -63,14 +64,16 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 });
 
 vi.mock("@/lib/child-session", () => ({
-  readChildSession: () => ({ childId: "child-1", householdId: "household-1", name: "Maya" }),
+  readChildSession: () => ({ childId: "child-1", householdId: "household-1", token: "session-token", expiresAt: "2099-01-01T00:00:00.000Z" }),
 }));
 
 vi.mock("convex/react", () => ({
-  useMutation: (mutation: { _name?: string }) =>
-    mutation._name?.includes("saveRoutineProgress")
+  useMutation: (mutation?: { _name?: string }) =>
+    mutation?._name?.includes("saveRoutineProgress")
       ? convexState.saveRoutineProgress
-      : convexState.submitRoutine,
+      : mutation?._name?.includes("updateSubmittedRoutine")
+        ? convexState.updateSubmittedRoutine
+        : convexState.submitRoutine,
   useQuery: (query: { _name?: string }) => {
     if (query._name?.includes("currentContext")) return convexState.context;
     if (query._name?.includes("getInstanceWithSteps")) return convexState.instance;
@@ -83,6 +86,7 @@ vi.mock("../../../convex/_generated/api", () => ({
     childMode: {
       saveRoutineProgress: { _name: "saveRoutineProgress" },
       submitRoutine: { _name: "submitRoutine" },
+      updateSubmittedRoutine: { _name: "updateSubmittedRoutine" },
     },
     households: { currentContext: { _name: "currentContext" } },
     routines: { getInstanceWithSteps: { _name: "getInstanceWithSteps" } },
@@ -93,6 +97,7 @@ describe("ChildRoutinePage", () => {
   beforeEach(() => {
     convexState.saveRoutineProgress.mockReset();
     convexState.submitRoutine.mockReset();
+    convexState.updateSubmittedRoutine.mockReset();
     convexState.saveRoutineProgress.mockResolvedValue(null);
     convexState.submitRoutine.mockResolvedValue(null);
     convexState.instance = {
@@ -128,7 +133,7 @@ describe("ChildRoutinePage", () => {
 
     expect(convexState.saveRoutineProgress).toHaveBeenCalledWith({
       householdId: "household-1",
-      childId: "child-1",
+      sessionToken: "session-token",
       routineInstanceId: "routine-1",
       completedStepIds: ["step-1"],
     });

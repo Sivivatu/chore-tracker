@@ -21,11 +21,13 @@ export function ChildRoutinePage() {
   );
   const saveRoutineProgress = useMutation(api.childMode.saveRoutineProgress);
   const submitRoutine = useMutation(api.childMode.submitRoutine);
+  const updateSubmittedRoutine = useMutation(api.childMode.updateSubmittedRoutine);
   const [toggledStepIds, setToggledStepIds] = useState(new Set<string>());
-  const readOnly =
-    instance?.status === "submitted" ||
-    instance?.status === "approved" ||
-    instance?.status === "paused";
+  const childSession = readChildSession();
+  const submittedToday = Boolean(instance?.canUpdateSubmittedRoutine);
+  const readOnly = !submittedToday && (
+    instance?.status === "submitted" || instance?.status === "approved" || instance?.status === "paused"
+  );
   const serverCompletedSteps = useMemo(() => {
     if (!instance) return new Set<string>();
     return new Set(instance.steps.filter((step) => step.completedAt).map((step) => step.id));
@@ -57,12 +59,11 @@ export function ChildRoutinePage() {
   }
 
   async function saveProgress() {
-    const childSession = readChildSession();
     if (!context?.household || !instance || !childSession) return;
 
     await saveRoutineProgress({
       householdId: context.household._id,
-      childId: childSession.childId as Id<"children">,
+      sessionToken: childSession.token,
       routineInstanceId: instance._id,
       completedStepIds: Array.from(checkedSteps) as Id<"stepInstances">[],
     });
@@ -70,12 +71,22 @@ export function ChildRoutinePage() {
   }
 
   async function submit() {
-    const childSession = readChildSession();
     if (!context?.household || !instance || !childSession) return;
 
     await submitRoutine({
       householdId: context.household._id,
-      childId: childSession.childId as Id<"children">,
+      sessionToken: childSession.token,
+      routineInstanceId: instance._id,
+      completedStepIds: Array.from(checkedSteps) as Id<"stepInstances">[],
+    });
+    setToggledStepIds(new Set());
+  }
+
+  async function updateSubmission() {
+    if (!context?.household || !instance || !childSession) return;
+    await updateSubmittedRoutine({
+      householdId: context.household._id,
+      sessionToken: childSession.token,
       routineInstanceId: instance._id,
       completedStepIds: Array.from(checkedSteps) as Id<"stepInstances">[],
     });
@@ -109,8 +120,8 @@ export function ChildRoutinePage() {
           ) : null}
           {readOnly ? (
             <p className="mt-3 text-sm font-bold text-ink/60">
-              {instance.status === "submitted"
-                ? "Waiting for parent approval. This routine is read-only."
+            {instance.status === "submitted"
+                ? "This submission can no longer be updated today."
                 : "This routine is read-only."}
             </p>
           ) : instance.status === "in_progress" ? (
@@ -135,7 +146,11 @@ export function ChildRoutinePage() {
           <p className="text-lg font-black">
             {checkedSteps.size} of {instance.steps.length} steps complete
           </p>
-          {!readOnly ? (
+          {submittedToday ? (
+            <Button disabled={!hasChanges} onClick={updateSubmission}>
+              Update submission
+            </Button>
+          ) : !readOnly ? (
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button disabled={!hasChanges} variant="secondary" onClick={saveProgress}>
                 Save progress

@@ -3,6 +3,7 @@ import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { assertHouseholdAccess } from "./security";
 import type { Doc, Id } from "./_generated/dataModel";
+import { householdDateKey } from "./householdTime";
 
 const routineType = v.union(
   v.literal("morning"),
@@ -433,6 +434,7 @@ export const getInstanceWithSteps = query({
     await assertHouseholdAccess(ctx, args.householdId);
     const instance = await ctx.db.get(args.routineInstanceId);
     if (!instance || instance.householdId !== args.householdId) return null;
+    const household = await ctx.db.get(args.householdId);
 
     const steps = await ctx.db
       .query("stepInstances")
@@ -444,6 +446,8 @@ export const getInstanceWithSteps = query({
     return {
       id: instance._id,
       ...instance,
+      canUpdateSubmittedRoutine:
+        instance.status === "submitted" && instance.date === householdDateKey(household?.timeZone),
       steps: steps
         .map((step) => ({ id: step._id, ...step }))
         .sort((a, b) => a.snapshotOrder - b.snapshotOrder),
