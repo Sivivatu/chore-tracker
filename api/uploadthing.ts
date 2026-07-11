@@ -132,7 +132,9 @@ export function handleUploadThingRequest(request: Request) {
   return handler(request);
 }
 
-export default handleUploadThingRequest;
+export default {
+  fetch: handleUploadThingRequest,
+};
 
 export function GET(request: Request) {
   return handleUploadThingRequest(request);

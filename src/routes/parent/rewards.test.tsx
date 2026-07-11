@@ -7,6 +7,7 @@ const convexState = vi.hoisted(() => ({
   createReward: vi.fn(),
   updateReward: vi.fn(),
   e2eBypass: false,
+  uploadThingIsUploading: false,
   context: {
     household: { _id: "household-1", name: "The Parker Household" },
     parent: { _id: "parent-1", householdId: "household-1", clerkUserId: "clerk-user-1" },
@@ -69,7 +70,7 @@ vi.mock("@/lib/uploadthing", () => ({
       onUploadError: (error: Error) => void;
     },
   ) => ({
-    isUploading: false,
+    isUploading: convexState.uploadThingIsUploading,
     startUpload: vi.fn(async (files: File[]) => {
       if (files[0]?.name === "broken.png") {
         options.onUploadError(new Error("Upload failed"));
@@ -79,6 +80,10 @@ vi.mock("@/lib/uploadthing", () => ({
         options.onUploadError(
           new Error("Something went wrong. Please report this to UploadThing."),
         );
+        return undefined;
+      }
+      if (files[0]?.name === "invalid-response.png") {
+        options.onUploadError(new Error("Failed to parse response from UploadThing server"));
         return undefined;
       }
       if (files[0]?.name === "direct.png") {
@@ -128,6 +133,7 @@ describe("ParentRewardsPage", () => {
     convexState.createReward.mockReset();
     convexState.updateReward.mockReset();
     convexState.e2eBypass = false;
+    convexState.uploadThingIsUploading = false;
     convexState.createReward.mockResolvedValue("reward-new");
     convexState.updateReward.mockResolvedValue("reward-film");
   });
@@ -195,6 +201,7 @@ describe("ParentRewardsPage", () => {
       new File(["image"], "reward.png", { type: "image/png" }),
     );
     expect(screen.getByText("Reward image uploaded.")).toBeInTheDocument();
+    expect(screen.getByText("Image upload complete.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /create reward/i }));
 
     expect(convexState.createReward).toHaveBeenCalledWith(
@@ -272,6 +279,30 @@ describe("ParentRewardsPage", () => {
     expect(screen.getByText("Choose an image file to upload.")).toBeInTheDocument();
   });
 
+  it("rejects reward images larger than the upload limit before uploading", async () => {
+    const user = userEvent.setup();
+    render(<ParentRewardsPage />);
+
+    await user.upload(
+      screen.getByLabelText(/upload reward image file/i),
+      new File([new Uint8Array(4 * 1024 * 1024 + 1)], "too-large.png", { type: "image/png" }),
+    );
+
+    expect(screen.getByText("Choose an image up to 4 MB.")).toBeInTheDocument();
+  });
+
+  it("prevents saving a reward while an image upload is running", async () => {
+    convexState.uploadThingIsUploading = true;
+    const user = userEvent.setup();
+    render(<ParentRewardsPage />);
+
+    await user.type(screen.getByLabelText(/reward title/i), "Choose breakfast");
+    await user.type(screen.getByLabelText(/points cost/i), "20");
+
+    expect(screen.getByRole("button", { name: /create reward/i })).toBeDisabled();
+    expect(convexState.createReward).not.toHaveBeenCalled();
+  });
+
   it("shows upload failures inline", async () => {
     const user = userEvent.setup();
     render(<ParentRewardsPage />);
@@ -310,6 +341,23 @@ describe("ParentRewardsPage", () => {
         "UploadThing rejected the upload before the reward was saved. Check the server log for the UploadThing route error.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("shows a production endpoint hint when UploadThing returns an invalid response", async () => {
+    const user = userEvent.setup();
+    render(<ParentRewardsPage />);
+
+    await user.upload(
+      screen.getByLabelText(/upload reward image file/i),
+      new File(["image"], "invalid-response.png", { type: "image/png" }),
+    );
+
+    expect(
+      screen.getByText(
+        "Upload failed because the upload endpoint returned an invalid response. Check the production /api/uploadthing function logs and UploadThing environment variables.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Image upload failed.")).toBeInTheDocument();
   });
 
   it("edits an existing reward", async () => {
