@@ -4,6 +4,13 @@ import { getCompletedPoints } from "@/lib/points";
 
 export function RoutineCard({ instance }: { instance: DailyRoutineInstance }) {
   const complete = instance.steps.filter((step) => step.completedAt).length;
+  const actionLabel =
+    instance.status === "not_started"
+      ? "Start routine"
+      : instance.status === "in_progress" || instance.status === "rejected"
+        ? "Continue routine"
+        : "View routine";
+
   return (
     <article className="rounded-lg border-2 border-ink bg-white p-5 shadow-poster">
       <p className="text-sm font-black uppercase text-coral">{instance.status.replace("_", " ")}</p>
@@ -17,7 +24,7 @@ export function RoutineCard({ instance }: { instance: DailyRoutineInstance }) {
         params={{ routineInstanceId: instance.id }}
         className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white shadow-button hover:bg-black"
       >
-        Open routine
+        {actionLabel}
       </Link>
     </article>
   );
