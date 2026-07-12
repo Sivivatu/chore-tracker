@@ -4,14 +4,17 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { RoutineCard } from "@/components/child/RoutineCard";
 import { readChildSession } from "@/lib/child-session";
-import { toDateKey } from "@/lib/dates";
+import { toTimeZoneDateKey } from "@/lib/dates";
 
 export function ChildTodayPage() {
   const context = useQuery(api.households.currentContext);
   const childSession = readChildSession();
   const childId = childSession?.childId;
   const householdId = context?.household?._id;
-  const today = useMemo(() => toDateKey(new Date()), []);
+  const today = useMemo(
+    () => toTimeZoneDateKey(new Date(), context?.household?.timeZone ?? "Europe/London"),
+    [context?.household?.timeZone],
+  );
   const ensureTodayForChild = useMutation(api.routines.ensureTodayForChild);
   const todaysRoutines = useQuery(
     api.routines.listTodayWithSteps,
