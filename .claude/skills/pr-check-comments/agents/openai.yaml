@@ -2,3 +2,6 @@ interface:
   display_name: "PR Check Comments"
   short_description: "Resolve comments on the current PR"
   default_prompt: "Use $pr-check-comments to check the current branch's PR comments, apply fixes, submit updates, and report the outcomes."
+
+policy:
+  allow_implicit_invocation: true

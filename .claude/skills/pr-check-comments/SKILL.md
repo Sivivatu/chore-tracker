@@ -23,9 +23,9 @@ Find the published PR for the current branch, retrieve unresolved review feedbac
    - If no PR exists for the current branch, stop and tell the user clearly.
 
 3. Retrieve review comments.
-   - Fetch line comments with `gh api repos/{owner}/{repo}/pulls/{number}/comments`.
-   - Fetch review summaries with `gh api repos/{owner}/{repo}/pulls/{number}/reviews`.
-   - Fetch issue-style PR comments with `gh api repos/{owner}/{repo}/issues/{number}/comments`.
+   - Fetch line comments with `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
+   - Fetch review summaries with `gh api repos/<owner>/<repo>/pulls/<number>/reviews`.
+   - Fetch issue-style PR comments with `gh api repos/<owner>/<repo>/issues/<number>/comments`.
    - Include unresolved comments where possible. GitHub's REST API does not always expose Graphite/GitHub thread resolution state cleanly, so treat recent unresolved-looking or actionable comments as candidates.
    - Ignore purely complimentary, already-obsolete, or non-actionable comments unless the user explicitly asks for a full comment audit.
 
