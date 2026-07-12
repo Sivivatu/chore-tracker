@@ -154,6 +154,7 @@ function E2ERewardImageUpload({
     setFileName(file.name);
     setUploadPhase("selected");
     setUploadPhase("uploading");
+    onUploadStateChange(true);
     try {
       const imageUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -172,6 +173,8 @@ function E2ERewardImageUpload({
     } catch (error) {
       setUploadPhase("failed");
       onError(error instanceof Error ? error.message : "Could not read image file.");
+    } finally {
+      onUploadStateChange(false);
     }
   }
 
