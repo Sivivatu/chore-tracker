@@ -256,7 +256,7 @@ Reason: if a parent edits a routine later, historical completion data must still
 3. Child submits the routine.
 4. Routine status becomes `submitted`.
 5. Parent receives an in-app review item.
-6. Submitted routines remain editable by the child until the end of their scheduled day in the household timezone; each update remains pending review and creates a new submission revision.
+6. Submitted routines remain editable by the child until the end of the routine's scheduled day in the household timezone; each update remains pending review and creates a new submission revision.
 
 ### Parent flow
 
