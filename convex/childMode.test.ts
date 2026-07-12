@@ -329,7 +329,7 @@ describe("child routine mode", () => {
     const { instance } = await getRoutineState(t, routineInstanceId);
     const auditEvent = await getRoutineApprovalAudit(t, routineInstanceId);
 
-    expect(instance).toMatchObject({ status: "approved" });
+    expect(instance).toMatchObject({ status: "approved", earnedPoints: 0 });
     expect(child?.pointsBalance).toBe(0);
     expect(auditEvent?.metadata).toMatchObject({
       earnedPoints: 0,

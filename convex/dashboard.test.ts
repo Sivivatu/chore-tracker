@@ -89,6 +89,7 @@ async function seedDashboardActivity({
       snapshotType: "morning",
       approvedAt: "2026-06-15T08:30:00.000Z",
       approvedByParentId: parentId,
+      earnedPoints: 5,
     });
     await ctx.db.insert("stepInstances", {
       householdId,
