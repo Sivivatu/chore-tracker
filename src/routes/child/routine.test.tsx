@@ -18,6 +18,7 @@ const convexState = vi.hoisted(() => ({
     routineTemplateId: "template-1",
     date: "2026-06-29",
     status: "not_started",
+    canUpdateSubmittedRoutine: false,
     snapshotName: "School Morning",
     snapshotType: "morning",
     rejectedAt: undefined as string | undefined,
@@ -64,7 +65,12 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 });
 
 vi.mock("@/lib/child-session", () => ({
-  readChildSession: () => ({ childId: "child-1", householdId: "household-1", token: "session-token", expiresAt: "2099-01-01T00:00:00.000Z" }),
+  readChildSession: () => ({
+    childId: "child-1",
+    householdId: "household-1",
+    token: "session-token",
+    expiresAt: "2099-01-01T00:00:00.000Z",
+  }),
 }));
 
 vi.mock("convex/react", () => ({
@@ -103,6 +109,7 @@ describe("ChildRoutinePage", () => {
     convexState.instance = {
       ...convexState.instance,
       status: "not_started",
+      canUpdateSubmittedRoutine: false,
       rejectionNote: undefined,
       steps: convexState.instance.steps.map((step) => ({
         ...step,
@@ -171,6 +178,26 @@ describe("ChildRoutinePage", () => {
     expect(convexState.submitRoutine).toHaveBeenCalledWith(
       expect.objectContaining({ completedStepIds: ["step-1"] }),
     );
+  });
+
+  it("updates a submitted routine that can still be revised today", async () => {
+    const user = userEvent.setup();
+    convexState.instance = {
+      ...convexState.instance,
+      status: "submitted",
+      canUpdateSubmittedRoutine: true,
+    };
+    render(<ChildRoutinePage />);
+
+    await user.click(screen.getByRole("button", { name: /tick brush teeth/i }));
+    await user.click(screen.getByRole("button", { name: /update submission/i }));
+
+    expect(convexState.updateSubmittedRoutine).toHaveBeenCalledWith({
+      householdId: "household-1",
+      sessionToken: "session-token",
+      routineInstanceId: "routine-1",
+      completedStepIds: ["step-1"],
+    });
   });
 
   it("shows saved steps when continuing an in-progress routine", async () => {

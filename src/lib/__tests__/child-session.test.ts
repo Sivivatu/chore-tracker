@@ -22,7 +22,12 @@ describe("child session", () => {
   });
 
   it("stores child mode without granting parent permissions", () => {
-    const session = createChildSession("child-1", "household-1");
+    const session = createChildSession(
+      "child-1",
+      "household-1",
+      "test-session",
+      "2099-01-01T00:00:00.000Z",
+    );
     saveChildSession(session);
     expect(readChildSession()).toMatchObject({
       childId: "child-1",

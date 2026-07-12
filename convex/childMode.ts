@@ -1,5 +1,5 @@
 import { mutation, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { assertHouseholdAccess } from "./security";
 import { householdDateKey } from "./householdTime";
@@ -34,7 +34,11 @@ async function assertChildSession(
     .query("childModeSessions")
     .withIndex("by_token", (query) => query.eq("token", sessionToken))
     .unique();
-  if (!session || session.householdId !== householdId || session.expiresAt <= new Date().toISOString()) {
+  if (
+    !session ||
+    session.householdId !== householdId ||
+    session.expiresAt <= new Date().toISOString()
+  ) {
     throw new Error("Child session has expired. Ask a parent to open child mode again.");
   }
   const child = await ctx.db.get(session.childId);
@@ -46,16 +50,21 @@ async function applyRoutineStepSelection(
   ctx: MutationCtx,
   args: RoutineStepSelectionArgs,
   now: string,
+  existingSteps?: Doc<"stepInstances">[],
 ) {
   const instance = await ctx.db.get(args.routineInstanceId);
   if (!instance || instance.householdId !== args.householdId || instance.childId !== args.childId) {
     throw new Error("Routine not found");
   }
 
-  const steps = await ctx.db
-    .query("stepInstances")
-    .withIndex("by_routine_instance", (query) => query.eq("routineInstanceId", args.routineInstanceId))
-    .collect();
+  const steps =
+    existingSteps ??
+    (await ctx.db
+      .query("stepInstances")
+      .withIndex("by_routine_instance", (query) =>
+        query.eq("routineInstanceId", args.routineInstanceId),
+      )
+      .collect());
   const validStepIds = new Set(steps.map((step) => step._id));
   const completedStepIds = new Set(args.completedStepIds);
   for (const completedStepId of completedStepIds) {
@@ -77,7 +86,11 @@ async function applyRoutineStepSelection(
       });
     }
   }
-  return { instance, completedStepCount: completedStepIds.size };
+  return {
+    instance,
+    completedStepCount: completedStepIds.size,
+    previousCompletedStepCount: steps.filter((step) => step.completedAt).length,
+  };
 }
 
 const routineSelectionArgs = {
@@ -93,7 +106,8 @@ export const createSession = mutation({
   handler: async (ctx, args) => {
     await assertHouseholdAccess(ctx, args.householdId);
     const child = await ctx.db.get(args.childId);
-    if (!child || child.householdId !== args.householdId) throw new Error("Child profile not found");
+    if (!child || child.householdId !== args.householdId)
+      throw new Error("Child profile not found");
     const now = new Date();
     const expiresAt = new Date(now.getTime() + childSessionLifetimeMs).toISOString();
     const token = createSessionToken();
@@ -111,12 +125,20 @@ export const createSession = mutation({
 export const saveRoutineProgress = mutation({
   args: routineSelectionArgs,
   handler: async (ctx, args) => {
-    const { child } = await assertChildSession(ctx, args.householdId, args.sessionToken, args.childId);
+    const { child } = await assertChildSession(
+      ctx,
+      args.householdId,
+      args.sessionToken,
+      args.childId,
+    );
     const now = new Date().toISOString();
     const { instance, completedStepCount } = await applyRoutineStepSelection(
-      ctx, { ...args, childId: child._id }, now,
+      ctx,
+      { ...args, childId: child._id },
+      now,
     );
-    if (["submitted", "approved", "paused"].includes(instance.status)) throw new Error("Routine is read-only");
+    if (["submitted", "approved", "paused"].includes(instance.status))
+      throw new Error("Routine is read-only");
     await ctx.db.patch(args.routineInstanceId, {
       status: completedStepCount > 0 ? "in_progress" : "not_started",
       rejectedAt: undefined,
@@ -135,12 +157,20 @@ export const saveRoutineProgress = mutation({
 export const submitRoutine = mutation({
   args: routineSelectionArgs,
   handler: async (ctx, args) => {
-    const { child } = await assertChildSession(ctx, args.householdId, args.sessionToken, args.childId);
+    const { child } = await assertChildSession(
+      ctx,
+      args.householdId,
+      args.sessionToken,
+      args.childId,
+    );
     const now = new Date().toISOString();
     const { instance, completedStepCount } = await applyRoutineStepSelection(
-      ctx, { ...args, childId: child._id }, now,
+      ctx,
+      { ...args, childId: child._id },
+      now,
     );
-    if (["submitted", "approved", "paused"].includes(instance.status)) throw new Error("Routine is read-only");
+    if (["submitted", "approved", "paused"].includes(instance.status))
+      throw new Error("Routine is read-only");
     const revision = (instance.submissionRevision ?? 0) + 1;
     await ctx.db.patch(args.routineInstanceId, {
       status: "submitted",
@@ -163,28 +193,49 @@ export const submitRoutine = mutation({
 export const updateSubmittedRoutine = mutation({
   args: routineSelectionArgs,
   handler: async (ctx, args) => {
-    const { child } = await assertChildSession(ctx, args.householdId, args.sessionToken, args.childId);
+    const { child } = await assertChildSession(
+      ctx,
+      args.householdId,
+      args.sessionToken,
+      args.childId,
+    );
     const routine = await ctx.db.get(args.routineInstanceId);
     const household = await ctx.db.get(args.householdId);
-    if (!routine || !household || routine.status !== "submitted") throw new Error("Routine is read-only");
+    if (!routine || !household || routine.status !== "submitted")
+      throw new Error("Routine is read-only");
     if (routine.childId !== child._id) throw new Error("Routine not found");
     if (routine.date !== householdDateKey(household.timeZone)) {
       throw new Error("Submitted routines can only be updated on their scheduled day");
     }
     const now = new Date().toISOString();
-    const beforeCompletedStepCount = (await ctx.db
+    const steps = await ctx.db
       .query("stepInstances")
-      .withIndex("by_routine_instance", (query) => query.eq("routineInstanceId", args.routineInstanceId))
-      .collect()).filter((step) => step.completedAt).length;
-    const { completedStepCount } = await applyRoutineStepSelection(ctx, { ...args, childId: child._id }, now);
+      .withIndex("by_routine_instance", (query) =>
+        query.eq("routineInstanceId", args.routineInstanceId),
+      )
+      .collect();
+    const { completedStepCount, previousCompletedStepCount } = await applyRoutineStepSelection(
+      ctx,
+      { ...args, childId: child._id },
+      now,
+      steps,
+    );
     const revision = (routine.submissionRevision ?? 1) + 1;
-    await ctx.db.patch(args.routineInstanceId, { lastSubmittedAt: now, submissionRevision: revision });
+    await ctx.db.patch(args.routineInstanceId, {
+      lastSubmittedAt: now,
+      submissionRevision: revision,
+    });
     await ctx.db.insert("auditEvents", {
       householdId: args.householdId,
       actorId: child._id,
       action: "Submitted routine updated",
       createdAt: now,
-      metadata: { routineInstanceId: args.routineInstanceId, revision, beforeCompletedStepCount, completedStepCount },
+      metadata: {
+        routineInstanceId: args.routineInstanceId,
+        revision,
+        beforeCompletedStepCount: previousCompletedStepCount,
+        completedStepCount,
+      },
     });
     return { revision };
   },

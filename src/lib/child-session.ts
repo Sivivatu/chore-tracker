@@ -16,8 +16,8 @@ export function verifyChildPin(input: string, storedPinHash: string): boolean {
 export function createChildSession(
   childId: string,
   householdId: string,
-  token = "",
-  expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+  token: string,
+  expiresAt: string,
 ): ChildModeSession {
   return {
     childId,
@@ -59,7 +59,15 @@ export function clearChildSession(): void {
 }
 
 export function hasActiveChildSession(): boolean {
-  return readChildSession() !== null;
+  const value = localStorage.getItem(storageKey);
+  if (!value) return false;
+  try {
+    const session = JSON.parse(value) as Partial<ChildModeSession>;
+    if (!session.childId || !session.householdId) return false;
+    return !session.expiresAt || new Date(session.expiresAt).getTime() > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 export function saveParentReturnPath(path: string): void {

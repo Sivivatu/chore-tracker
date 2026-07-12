@@ -61,7 +61,8 @@ const convexState = vi.hoisted(() => ({
 
 vi.mock("convex/react", () => ({
   useMutation: (mutation: { _name?: string }) => {
-    if (mutation._name?.includes("updateHouseholdTimeZone")) return convexState.updateHouseholdTimeZone;
+    if (mutation._name?.includes("updateHouseholdTimeZone"))
+      return convexState.updateHouseholdTimeZone;
     if (mutation._name?.includes("updateHouseholdIdentity")) {
       return convexState.updateHouseholdIdentity;
     }
@@ -156,6 +157,19 @@ describe("ParentSettingsPage", () => {
       name: "The Singh Household",
     });
     expect(await screen.findByText("Household identity saved.")).toBeInTheDocument();
+  });
+
+  it("saves the household timezone", async () => {
+    const user = userEvent.setup();
+    render(<ParentSettingsPage />);
+
+    await user.selectOptions(screen.getByLabelText(/household timezone/i), "Europe/Paris");
+    await user.click(screen.getByRole("button", { name: /save timezone/i }));
+
+    expect(convexState.updateHouseholdTimeZone).toHaveBeenCalledWith({
+      householdId: "household-1",
+      timeZone: "Europe/Paris",
+    });
   });
 
   it("saves edited parent identity", async () => {

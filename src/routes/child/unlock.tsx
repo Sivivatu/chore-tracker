@@ -18,23 +18,32 @@ export function ChildUnlockPage() {
       .then((session) => {
         if (cancelled) return;
         saveChildSession(
-          createChildSession(session.childId, session.householdId, session.token, session.expiresAt),
+          createChildSession(
+            session.childId,
+            session.householdId,
+            session.token,
+            session.expiresAt,
+          ),
         );
         setReady(true);
       })
       .catch((cause) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "Could not open child mode.");
+        if (!cancelled)
+          setError(cause instanceof Error ? cause.message : "Could not open child mode.");
       });
     return () => {
       cancelled = true;
     };
-  }, [context?.child, context?.household, createSession]);
+  }, [context?.child?._id, context?.household?._id, createSession]);
 
   if (context?.household && context.child) {
     if (ready) return <Navigate to="/child/today" replace />;
     return (
       <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">
-        <p className="mx-auto max-w-md text-center text-sm font-bold text-ink/65" aria-live="polite">
+        <p
+          className="mx-auto max-w-md text-center text-sm font-bold text-ink/65"
+          aria-live="polite"
+        >
           {error || "Opening child mode..."}
         </p>
       </section>

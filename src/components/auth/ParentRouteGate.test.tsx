@@ -34,7 +34,9 @@ describe("ParentRouteGate", () => {
   });
 
   it("redirects and stores the intended parent route while child mode is active", async () => {
-    saveChildSession(createChildSession("child-1", "household-1"));
+    saveChildSession(
+      createChildSession("child-1", "household-1", "test-session", "2099-01-01T00:00:00.000Z"),
+    );
     window.history.pushState({}, "", "/parent/routines?tab=templates");
 
     render(<ParentRouteGate />);
