@@ -12,6 +12,8 @@ describe("RoutineStepRow", () => {
 
     render(<RoutineStepRow step={step} checked={false} onToggle={onToggle} />);
 
+    expect(screen.getByRole("heading", { name: step.snapshotTitle })).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: /tick get dressed/i }));
     expect(onToggle).toHaveBeenCalledWith(step.id);
   });

@@ -10,13 +10,24 @@ type Props = {
 };
 
 export function RoutineStepRow({ step, checked, disabled = false, onToggle }: Props) {
+  const titleId = `routine-step-${step.id}-title`;
+  const descriptionId = `routine-step-${step.id}-description`;
+
   return (
     <li>
+      <h3 id={titleId} className="sr-only">
+        {step.snapshotTitle}
+      </h3>
+      <p id={descriptionId} className="sr-only">
+        {step.snapshotDescription}. {step.snapshotPoints} points{" "}
+        {step.snapshotRequired ? "required" : "optional"}.
+      </p>
       <button
         type="button"
         disabled={disabled}
         aria-pressed={checked}
         aria-label={`${checked ? "Untick" : "Tick"} ${step.snapshotTitle}`}
+        aria-describedby={descriptionId}
         onClick={() => onToggle(step.id)}
         className="routine-row grid w-full gap-4 rounded-lg border-2 bg-white p-4 text-left text-ink shadow-poster transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#111827] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-poster data-[checked=true]:border-emerald-500 data-[checked=true]:bg-emerald-50 data-[checked=true]:text-emerald-950 md:grid-cols-[4rem_1fr_auto_auto] md:items-center"
         style={{ borderColor: checked ? undefined : step.accent }}
@@ -29,7 +40,7 @@ export function RoutineStepRow({ step, checked, disabled = false, onToggle }: Pr
         >
           {step.snapshotOrder}
         </span>
-        <span>
+        <span aria-hidden>
           <span className="block text-2xl font-black">{step.snapshotTitle}</span>
           <span className="mt-1 block text-sm font-semibold text-ink/60">
             {step.snapshotDescription}

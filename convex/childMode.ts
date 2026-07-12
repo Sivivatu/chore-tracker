@@ -51,12 +51,12 @@ async function applyRoutineStepSelection(
       throw new Error("Routine step mismatch");
     }
 
-    if (completedStepIds.has(step._id)) {
+    if (completedStepIds.has(step._id) && !step.completedAt) {
       await ctx.db.patch(step._id, {
-        completedAt: step.completedAt ?? now,
+        completedAt: now,
         completedByChildId: args.childId,
       });
-    } else {
+    } else if (!completedStepIds.has(step._id) && step.completedAt) {
       await ctx.db.patch(step._id, {
         completedAt: undefined,
         completedByChildId: undefined,

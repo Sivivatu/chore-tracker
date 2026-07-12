@@ -135,8 +135,8 @@ describe("ChildRoutinePage", () => {
     expect(convexState.submitRoutine).not.toHaveBeenCalled();
   });
 
-  it("keeps submitted and approved routines read-only", () => {
-    for (const status of ["submitted", "approved"] as const) {
+  it("keeps submitted, approved and paused routines read-only", () => {
+    for (const status of ["submitted", "approved", "paused"] as const) {
       convexState.instance = { ...convexState.instance, status };
       const { unmount } = render(<ChildRoutinePage />);
 
@@ -189,5 +189,6 @@ describe("ChildRoutinePage", () => {
       "aria-pressed",
       "true",
     );
+    expect(screen.getByRole("button", { name: /submit for approval/i })).toBeEnabled();
   });
 });

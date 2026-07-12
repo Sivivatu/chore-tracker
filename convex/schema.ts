@@ -124,6 +124,7 @@ export default defineSchema({
     submittedAt: v.optional(v.string()),
     approvedAt: v.optional(v.string()),
     approvedByParentId: v.optional(v.id("parents")),
+    earnedPoints: v.optional(v.number()),
     rejectedAt: v.optional(v.string()),
     rejectionNote: v.optional(v.string()),
   })

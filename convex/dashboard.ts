@@ -170,6 +170,7 @@ export const weeklyOverview = query({
       routineInstances
         .filter((instance) => instance.status === "approved")
         .map(async (instance) => {
+          if (instance.earnedPoints !== undefined) return instance.earnedPoints;
           const steps = await ctx.db
             .query("stepInstances")
             .withIndex("by_routine_instance", (query) =>

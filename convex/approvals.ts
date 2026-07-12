@@ -64,6 +64,7 @@ export const approve = mutation({
       status: "approved",
       approvedAt: new Date().toISOString(),
       approvedByParentId: parent._id,
+      earnedPoints,
     });
     await ctx.db.patch(child._id, {
       pointsBalance: child.pointsBalance + earnedPoints,

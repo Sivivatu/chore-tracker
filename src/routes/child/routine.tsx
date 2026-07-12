@@ -140,7 +140,7 @@ export function ChildRoutinePage() {
               <Button disabled={!hasChanges} variant="secondary" onClick={saveProgress}>
                 Save progress
               </Button>
-              <Button disabled={!hasChanges || checkedSteps.size === 0} onClick={submit}>
+              <Button disabled={checkedSteps.size === 0} onClick={submit}>
                 Submit for approval
               </Button>
             </div>

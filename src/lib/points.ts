@@ -1,6 +1,9 @@
 import type { DailyRoutineInstance } from "@/types/domain";
 
 export function getCompletedPoints(instance: DailyRoutineInstance): number {
+  if (instance.status === "approved" && instance.earnedPoints !== undefined) {
+    return instance.earnedPoints;
+  }
   return instance.steps
     .filter((step) => Boolean(step.completedAt))
     .reduce((total, step) => total + step.snapshotPoints, 0);
