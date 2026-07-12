@@ -29,7 +29,7 @@ describe("business rules", () => {
   });
 
   it("awards points only for approved routines", () => {
-    const approved = { ...routineInstances[0], status: "approved" as const };
+    const approved = { ...routineInstances[0], status: "approved" as const, earnedPoints: 7 };
     expect(getCompletedPoints(approved)).toBeGreaterThan(0);
     expect(getApprovedPoints([approved, routineInstances[1]])).toBe(getCompletedPoints(approved));
   });

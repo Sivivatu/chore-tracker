@@ -202,9 +202,14 @@ export const approvePastRoutine = mutation({
 
     let earnedPoints = 0;
     if (!instance) {
-      earnedPoints = steps
-        .filter((step) => selectedOrders.has(step.order))
-        .reduce((total, step) => total + step.points, 0);
+      const hasMissedRequiredStep = steps.some(
+        (step) => step.required && !selectedOrders.has(step.order),
+      );
+      earnedPoints = hasMissedRequiredStep
+        ? 0
+        : steps
+            .filter((step) => selectedOrders.has(step.order))
+            .reduce((total, step) => total + step.points, 0);
       const routineInstanceId = await ctx.db.insert("routineInstances", {
         householdId: args.householdId,
         childId: args.childId,
@@ -239,9 +244,14 @@ export const approvePastRoutine = mutation({
         .query("stepInstances")
         .withIndex("by_routine_instance", (q) => q.eq("routineInstanceId", existingInstance._id))
         .collect();
-      earnedPoints = instanceSteps
-        .filter((step) => selectedOrders.has(step.snapshotOrder))
-        .reduce((total, step) => total + step.snapshotPoints, 0);
+      const hasMissedRequiredStep = instanceSteps.some(
+        (step) => step.snapshotRequired && !selectedOrders.has(step.snapshotOrder),
+      );
+      earnedPoints = hasMissedRequiredStep
+        ? 0
+        : instanceSteps
+            .filter((step) => selectedOrders.has(step.snapshotOrder))
+            .reduce((total, step) => total + step.snapshotPoints, 0);
       for (const step of instanceSteps) {
         await ctx.db.patch(step._id, {
           completedAt: selectedOrders.has(step.snapshotOrder) ? now : undefined,
@@ -255,6 +265,7 @@ export const approvePastRoutine = mutation({
       status: "approved",
       approvedAt: now,
       approvedByParentId: parent._id,
+      earnedPoints,
       submittedAt: undefined,
       rejectedAt: undefined,
       rejectionNote: undefined,

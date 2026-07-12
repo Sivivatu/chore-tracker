@@ -4,6 +4,9 @@ export function getCompletedPoints(instance: DailyRoutineInstance): number {
   if (instance.status === "approved" && instance.earnedPoints !== undefined) {
     return instance.earnedPoints;
   }
+  if (instance.steps.some((step) => step.snapshotRequired && !step.completedAt)) {
+    return 0;
+  }
   return instance.steps
     .filter((step) => Boolean(step.completedAt))
     .reduce((total, step) => total + step.snapshotPoints, 0);
