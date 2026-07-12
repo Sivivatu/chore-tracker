@@ -39,6 +39,20 @@ describe("child session", () => {
     expect(hasActiveChildSession()).toBe(false);
   });
 
+  it("keeps a pre-token child session locked during the session migration", () => {
+    localStorage.setItem(
+      "chore-tracker-child-session",
+      JSON.stringify({
+        childId: "child-1",
+        householdId: "household-1",
+        unlockedAt: "2026-07-11T12:00:00.000Z",
+      }),
+    );
+
+    expect(readChildSession()).toBeNull();
+    expect(hasActiveChildSession()).toBe(true);
+  });
+
   it("stores the parent return path separately from child mode", () => {
     saveParentReturnPath("/parent/routines");
     expect(readParentReturnPath()).toBe("/parent/routines");
