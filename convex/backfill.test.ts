@@ -77,7 +77,7 @@ async function setup() {
 }
 
 describe("backfill", () => {
-  it("approves selected routine steps and awards only their points", async () => {
+  it("awards zero points when a required backfill step is missing", async () => {
     const { t, owner, householdId, childId, routineTemplateId } = await setup();
 
     const result = await owner.mutation(api.backfill.approvePastRoutine, {
@@ -88,9 +88,9 @@ describe("backfill", () => {
       completedStepOrders: [2],
     });
 
-    expect(result.earnedPoints).toBe(7);
+    expect(result.earnedPoints).toBe(0);
     const child = await t.run((ctx) => ctx.db.get(childId));
-    expect(child?.pointsBalance).toBe(7);
+    expect(child?.pointsBalance).toBe(0);
   });
 
   it("rejects duplicate routine awards once approved", async () => {

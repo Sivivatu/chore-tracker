@@ -82,6 +82,7 @@ export type DailyRoutineInstance = {
   submittedAt?: string;
   approvedAt?: string;
   approvedByParentId?: string;
+  earnedPoints?: number;
   rejectedAt?: string;
   rejectionNote?: string;
   steps: DailyStepInstance[];

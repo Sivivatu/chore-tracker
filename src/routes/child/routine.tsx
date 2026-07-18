@@ -19,9 +19,17 @@ export function ChildRoutinePage() {
         }
       : "skip",
   );
+  const saveRoutineProgress = useMutation(api.childMode.saveRoutineProgress);
   const submitRoutine = useMutation(api.childMode.submitRoutine);
   const [toggledStepIds, setToggledStepIds] = useState(new Set<string>());
-  const readOnly = instance?.status === "submitted" || instance?.status === "approved";
+  const readOnly =
+    instance?.status === "submitted" ||
+    instance?.status === "approved" ||
+    instance?.status === "paused";
+  const serverCompletedSteps = useMemo(() => {
+    if (!instance) return new Set<string>();
+    return new Set(instance.steps.filter((step) => step.completedAt).map((step) => step.id));
+  }, [instance]);
   const checkedSteps = useMemo(() => {
     if (!instance) return new Set<string>();
 
@@ -34,6 +42,10 @@ export function ChildRoutinePage() {
         .map((step) => step.id),
     );
   }, [instance, toggledStepIds]);
+  const hasChanges = useMemo(() => {
+    if (checkedSteps.size !== serverCompletedSteps.size) return true;
+    return Array.from(checkedSteps).some((stepId) => !serverCompletedSteps.has(stepId));
+  }, [checkedSteps, serverCompletedSteps]);
 
   function toggleStep(stepId: string) {
     setToggledStepIds((current) => {
@@ -42,6 +54,19 @@ export function ChildRoutinePage() {
       else next.add(stepId);
       return next;
     });
+  }
+
+  async function saveProgress() {
+    const childSession = readChildSession();
+    if (!context?.household || !instance || !childSession) return;
+
+    await saveRoutineProgress({
+      householdId: context.household._id,
+      childId: childSession.childId as Id<"children">,
+      routineInstanceId: instance._id,
+      completedStepIds: Array.from(checkedSteps) as Id<"stepInstances">[],
+    });
+    setToggledStepIds(new Set());
   }
 
   async function submit() {
@@ -84,8 +109,12 @@ export function ChildRoutinePage() {
           ) : null}
           {readOnly ? (
             <p className="mt-3 text-sm font-bold text-ink/60">
-              Waiting for parent approval. This routine is read-only.
+              {instance.status === "submitted"
+                ? "Waiting for parent approval. This routine is read-only."
+                : "This routine is read-only."}
             </p>
+          ) : instance.status === "in_progress" ? (
+            <p className="mt-3 text-sm font-bold text-emerald-700">Saved progress</p>
           ) : null}
         </div>
         <ol className="mt-8 grid gap-4">
@@ -104,11 +133,18 @@ export function ChildRoutinePage() {
         </ol>
         <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-lg bg-white p-4 md:flex-row">
           <p className="text-lg font-black">
-            {checkedSteps.size} of {instance.steps.length} steps ticked
+            {checkedSteps.size} of {instance.steps.length} steps complete
           </p>
-          <Button disabled={readOnly || checkedSteps.size === 0} onClick={submit}>
-            Submit for approval
-          </Button>
+          {!readOnly ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button disabled={!hasChanges} variant="secondary" onClick={saveProgress}>
+                Save progress
+              </Button>
+              <Button disabled={checkedSteps.size === 0} onClick={submit}>
+                Submit for approval
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

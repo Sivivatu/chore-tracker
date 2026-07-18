@@ -48,9 +48,13 @@ export const approve = mutation({
         query.eq("routineInstanceId", args.routineInstanceId),
       )
       .collect();
-    const earnedPoints = steps
+    const missedRequiredStepCount = steps.filter(
+      (step) => step.snapshotRequired && !step.completedAt,
+    ).length;
+    const completedPoints = steps
       .filter((step) => step.completedAt)
       .reduce((total, step) => total + step.snapshotPoints, 0);
+    const earnedPoints = missedRequiredStepCount > 0 ? 0 : completedPoints;
     const child = await ctx.db.get(instance.childId);
     if (!child || child.householdId !== args.householdId) {
       throw new Error("Child profile not found");
@@ -60,6 +64,7 @@ export const approve = mutation({
       status: "approved",
       approvedAt: new Date().toISOString(),
       approvedByParentId: parent._id,
+      earnedPoints,
     });
     await ctx.db.patch(child._id, {
       pointsBalance: child.pointsBalance + earnedPoints,
@@ -69,7 +74,12 @@ export const approve = mutation({
       actorId: parent._id,
       action: "Routine approved",
       createdAt: new Date().toISOString(),
-      metadata: { routineInstanceId: args.routineInstanceId, earnedPoints },
+      metadata: {
+        routineInstanceId: args.routineInstanceId,
+        earnedPoints,
+        missedRequiredStepCount,
+        requiredStepsComplete: missedRequiredStepCount === 0,
+      },
     });
   },
 });
