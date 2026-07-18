@@ -86,7 +86,7 @@ Do not optimise for 100% coverage if it leads to brittle or low-value tests.
 - Child can tick steps out of order.
 - Completion count updates.
 - Child can submit routine.
-- Submitted routine becomes read-only.
+- Submitted routines can be updated only until the end of their scheduled day in the household timezone; approved and expired routines are read-only, while rejected routines can be corrected and resubmitted.
 
 ### Parent approval
 
