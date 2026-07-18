@@ -1,6 +1,6 @@
 import { Image, Pencil, UploadCloud } from "lucide-react";
 import { useAuth } from "@clerk/react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -33,6 +33,10 @@ type UploadedRewardImage = {
   url?: string;
   serverData: null;
 };
+
+type RewardImageUploadPhase = "idle" | "selected" | "uploading" | "uploaded" | "failed";
+
+const maxRewardImageBytes = 4 * 1024 * 1024;
 
 const emptyForm: RewardForm = {
   rewardId: null,
@@ -77,12 +81,20 @@ function visualFromReward(reward: {
 function RewardImageUpload({
   onUploaded,
   onError,
+  onUploadStateChange,
 }: {
   onUploaded: (visual: Extract<RewardVisualValue, { type: "upload" }>) => void;
   onError: (message: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
 }) {
   if (isE2EAuthBypass()) {
-    return <E2ERewardImageUpload onUploaded={onUploaded} onError={onError} />;
+    return (
+      <E2ERewardImageUpload
+        onUploaded={onUploaded}
+        onError={onError}
+        onUploadStateChange={onUploadStateChange}
+      />
+    );
   }
 
   if (!hasClerkConfig()) {
@@ -91,7 +103,13 @@ function RewardImageUpload({
     );
   }
 
-  return <AuthenticatedRewardImageUpload onUploaded={onUploaded} onError={onError} />;
+  return (
+    <AuthenticatedRewardImageUpload
+      onUploaded={onUploaded}
+      onError={onError}
+      onUploadStateChange={onUploadStateChange}
+    />
+  );
 }
 
 function uploadVisualFromFile(uploadedFile: UploadedRewardImage) {
@@ -106,34 +124,58 @@ function uploadVisualFromFile(uploadedFile: UploadedRewardImage) {
 function E2ERewardImageUpload({
   onUploaded,
   onError,
+  onUploadStateChange,
 }: {
   onUploaded: (visual: Extract<RewardVisualValue, { type: "upload" }>) => void;
   onError: (message: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
+  const [uploadPhase, setUploadPhase] = useState<RewardImageUploadPhase>("idle");
+
+  useEffect(() => {
+    onUploadStateChange(false);
+  }, [onUploadStateChange]);
 
   async function uploadFiles(files: FileList | File[]) {
     const file = Array.from(files).find((file) => file.type.startsWith("image/"));
     if (!file) {
+      setUploadPhase("failed");
       onError("Choose an image file to upload.");
+      return;
+    }
+    if (file.size > maxRewardImageBytes) {
+      setUploadPhase("failed");
+      onError("Choose an image up to 4 MB.");
       return;
     }
 
     setFileName(file.name);
-    const imageUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Could not read image file."));
-      reader.readAsDataURL(file);
-    });
+    setUploadPhase("selected");
+    setUploadPhase("uploading");
+    onUploadStateChange(true);
+    try {
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read image file."));
+        reader.readAsDataURL(file);
+      });
 
-    onUploaded({
-      type: "upload",
-      imageUrl,
-      uploadThingKey: `e2e-${file.name}`,
-      imageName: file.name,
-    });
+      onUploaded({
+        type: "upload",
+        imageUrl,
+        uploadThingKey: `e2e-${file.name}`,
+        imageName: file.name,
+      });
+      setUploadPhase("uploaded");
+    } catch (error) {
+      setUploadPhase("failed");
+      onError(error instanceof Error ? error.message : "Could not read image file.");
+    } finally {
+      onUploadStateChange(false);
+    }
   }
 
   function handleDrop(event: DragEvent<HTMLButtonElement>) {
@@ -169,6 +211,15 @@ function E2ERewardImageUpload({
         <span className="mt-1 text-xs font-semibold text-ink/55">
           {fileName || "E2E image upload"}
         </span>
+        <span className="mt-2 text-xs font-bold text-ink/65" aria-live="polite">
+          {uploadPhase === "uploading"
+            ? "Uploading image. Keep this page open."
+            : uploadPhase === "uploaded"
+              ? "Image upload complete."
+              : uploadPhase === "failed"
+                ? "Image upload failed."
+                : "No image uploaded yet."}
+        </span>
       </button>
     </div>
   );
@@ -177,28 +228,39 @@ function E2ERewardImageUpload({
 function AuthenticatedRewardImageUpload({
   onUploaded,
   onError,
+  onUploadStateChange,
 }: {
   onUploaded: (visual: Extract<RewardVisualValue, { type: "upload" }>) => void;
   onError: (message: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
 }) {
   const { getToken, isSignedIn } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<RewardImageUploadPhase>("idle");
   const { startUpload, isUploading } = useUploadThing("rewardImageUploader", {
     headers: async () => {
       const token = await getToken();
       return token ? { authorization: `Bearer ${token}` } : new Headers();
     },
     onUploadError: (error) => {
+      setUploadPhase("failed");
       const uploadThingFallback = "Something went wrong. Please report this to UploadThing.";
+      const invalidUploadThingResponse = "Failed to parse response from UploadThing server";
       onError(
         error.message === uploadThingFallback
           ? "UploadThing rejected the upload before the reward was saved. Check the server log for the UploadThing route error."
+          : error.message === invalidUploadThingResponse
+            ? "Upload failed because the upload endpoint returned an invalid response. Check the production /api/uploadthing function logs and UploadThing environment variables."
           : error.message,
       );
     },
   });
+
+  useEffect(() => {
+    onUploadStateChange(isUploading);
+  }, [isUploading, onUploadStateChange]);
 
   if (!isSignedIn) {
     return (
@@ -211,22 +273,42 @@ function AuthenticatedRewardImageUpload({
   async function uploadFiles(files: FileList | File[]) {
     const file = Array.from(files).find((file) => file.type.startsWith("image/"));
     if (!file) {
+      setUploadPhase("failed");
       onError("Choose an image file to upload.");
+      return;
+    }
+    if (file.size > maxRewardImageBytes) {
+      setUploadPhase("failed");
+      onError("Choose an image up to 4 MB.");
       return;
     }
 
     setFileName(file.name);
-    const uploadedFiles = await startUpload([file]);
+    setUploadPhase("selected");
+    setUploadPhase("uploading");
+    let uploadedFiles: Awaited<ReturnType<typeof startUpload>>;
+    try {
+      uploadedFiles = await startUpload([file]);
+    } catch (error) {
+      setUploadPhase("failed");
+      onError(error instanceof Error ? error.message : "Could not upload image.");
+      return;
+    }
     const uploadedFile = uploadedFiles?.at(0);
-    if (!uploadedFile) return;
+    if (!uploadedFile) {
+      setUploadPhase("failed");
+      return;
+    }
 
     const visual = uploadVisualFromFile(uploadedFile);
     if (!visual.imageUrl) {
+      setUploadPhase("failed");
       onError("Upload completed without an image URL.");
       return;
     }
 
     onUploaded(visual);
+    setUploadPhase("uploaded");
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -277,6 +359,17 @@ function AuthenticatedRewardImageUpload({
         <span className="mt-1 text-xs font-semibold text-ink/55">
           {fileName || "Images up to 4 MB"}
         </span>
+        <span className="mt-2 text-xs font-bold text-ink/65" aria-live="polite">
+          {uploadPhase === "selected"
+            ? "Image selected. Upload will start now."
+            : uploadPhase === "uploading" || isUploading
+              ? "Uploading image. Keep this page open."
+              : uploadPhase === "uploaded"
+                ? "Image upload complete."
+                : uploadPhase === "failed"
+                  ? "Image upload failed."
+                  : "No image uploaded yet."}
+        </span>
       </button>
     </div>
   );
@@ -286,6 +379,7 @@ export function ParentRewardsPage() {
   const [form, setForm] = useState<RewardForm>(emptyForm);
   const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
+  const [imageUploadInProgress, setImageUploadInProgress] = useState(false);
   const context = useQuery(api.households.currentContext);
   const activeHouseholdId =
     context?.household && context.parent.householdId === context.household._id
@@ -316,6 +410,10 @@ export function ParentRewardsPage() {
     resetMessages();
     if (!activeHouseholdId) {
       setError("Your parent account is not linked to this household.");
+      return;
+    }
+    if (imageUploadInProgress) {
+      setError("Wait for the image upload to finish before saving the reward.");
       return;
     }
 
@@ -470,6 +568,7 @@ export function ParentRewardsPage() {
                   setError(message);
                   setStatusMessage("");
                 }}
+                onUploadStateChange={setImageUploadInProgress}
               />
             </div>
           </div>
@@ -486,7 +585,7 @@ export function ParentRewardsPage() {
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button type="submit" disabled={!activeHouseholdId}>
+            <Button type="submit" disabled={!activeHouseholdId || imageUploadInProgress}>
               {form.rewardId ? "Save changes" : "Create reward"}
             </Button>
             {form.rewardId ? (
