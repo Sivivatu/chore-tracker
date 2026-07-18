@@ -37,13 +37,12 @@ export function readChildSession(): ChildModeSession | null {
   if (!value) return null;
   try {
     const session = JSON.parse(value) as Partial<ChildModeSession>;
-    if (
-      !session.childId ||
-      !session.householdId ||
-      !session.token ||
-      !session.expiresAt ||
-      new Date(session.expiresAt).getTime() <= Date.now()
-    ) {
+    if (!session.childId || !session.householdId) {
+      clearChildSession();
+      return null;
+    }
+    if (!session.token || !session.expiresAt) return null;
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
       clearChildSession();
       return null;
     }
