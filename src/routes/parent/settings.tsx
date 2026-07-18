@@ -92,6 +92,12 @@ export function ParentSettingsPage() {
             initialName={context.household.name}
           />
         ) : null}
+        {context?.household ? (
+          <HouseholdTimeZoneForm
+            householdId={context.household._id}
+            initialTimeZone={context.household.timeZone}
+          />
+        ) : null}
         {context?.household && context.parent ? (
           <ParentIdentityForm
             key={context.parent._id}
@@ -458,6 +464,70 @@ function HouseholdIdentityForm({
       ) : null}
       <Button className="mt-4" type="submit">
         Save household
+      </Button>
+    </form>
+  );
+}
+
+function HouseholdTimeZoneForm({
+  householdId,
+  initialTimeZone,
+}: {
+  householdId: Id<"households">;
+  initialTimeZone: string;
+}) {
+  const [timeZone, setTimeZone] = useState(initialTimeZone);
+  const [message, setMessage] = useState("");
+  const updateTimeZone = useMutation(api.households.updateHouseholdTimeZone);
+  const timeZones = Array.from(
+    new Set([
+      initialTimeZone,
+      "Europe/London",
+      "Europe/Dublin",
+      "Europe/Paris",
+      "America/New_York",
+      "America/Los_Angeles",
+      "Australia/Sydney",
+      "Pacific/Auckland",
+    ]),
+  );
+  return (
+    <form
+      className="mt-4 rounded-md bg-paper p-4"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setMessage("");
+        try {
+          await updateTimeZone({ householdId, timeZone });
+          setMessage("Timezone saved.");
+        } catch (error) {
+          setMessage(error instanceof Error ? error.message : "Could not save timezone.");
+        }
+      }}
+    >
+      <label htmlFor="household-timezone" className="block text-sm font-bold">
+        Household timezone
+      </label>
+      <select
+        id="household-timezone"
+        value={timeZone}
+        onChange={(event) => setTimeZone(event.target.value)}
+        className="mt-2 h-12 w-full rounded-md border border-ink/20 bg-white px-3"
+      >
+        {timeZones.map((zone) => (
+          <option key={zone}>{zone}</option>
+        ))}
+      </select>
+      <p className="mt-2 text-sm text-ink/60">
+        Routine submission updates close at midnight in this timezone.
+      </p>
+      {message ? (
+        <p className="mt-2 text-sm font-bold text-teal" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
+      <Button className="mt-4" type="submit">
+        Save timezone
       </Button>
     </form>
   );

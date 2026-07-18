@@ -24,7 +24,9 @@ describe("AppLayout", () => {
   });
 
   it("hides parent navigation and account controls in child mode", () => {
-    saveChildSession(createChildSession("child-1", "household-1"));
+    saveChildSession(
+      createChildSession("child-1", "household-1", "test-session", "2099-01-01T00:00:00.000Z"),
+    );
 
     render(<AppLayout>Child content</AppLayout>);
 

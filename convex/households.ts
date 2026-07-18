@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { assertHouseholdAccess, currentParent, requireParent } from "./security";
 import { hashPin, verifyPin } from "./pins";
 import type { Doc } from "./_generated/dataModel";
+import { assertIanaTimeZone, defaultHouseholdTimeZone } from "./householdTime";
 
 const MAX_IDENTITY_NAME_LENGTH = 80;
 
@@ -21,6 +22,7 @@ function publicHousehold(household: Doc<"households">) {
     _creationTime: household._creationTime,
     name: household.name,
     createdAt: household.createdAt,
+    timeZone: household.timeZone ?? defaultHouseholdTimeZone,
   };
 }
 
@@ -118,6 +120,7 @@ export const createInitialHousehold = mutation({
     const householdId = await ctx.db.insert("households", {
       name: householdName,
       createdAt: new Date().toISOString(),
+      timeZone: defaultHouseholdTimeZone,
     });
     await ctx.db.patch(householdId, {
       parentLockPinHash: await hashPin(parentPin, householdId),
@@ -167,6 +170,26 @@ export const updateHouseholdIdentity = mutation({
     });
 
     return publicHousehold({ ...household, name });
+  },
+});
+
+export const updateHouseholdTimeZone = mutation({
+  args: { householdId: v.id("households"), timeZone: v.string() },
+  handler: async (ctx, args) => {
+    const parent = await assertHouseholdAccess(ctx, args.householdId);
+    const household = await ctx.db.get(args.householdId);
+    if (!household) throw new Error("Household not found");
+
+    const timeZone = assertIanaTimeZone(args.timeZone);
+    await ctx.db.patch(args.householdId, { timeZone });
+    await ctx.db.insert("auditEvents", {
+      householdId: args.householdId,
+      actorId: parent._id,
+      action: "Household timezone updated",
+      createdAt: new Date().toISOString(),
+      metadata: { timeZone },
+    });
+    return publicHousehold({ ...household, timeZone });
   },
 });
 

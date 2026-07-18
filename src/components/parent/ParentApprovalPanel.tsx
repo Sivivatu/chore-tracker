@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Check, X } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -15,24 +16,8 @@ export function ParentApprovalPanel() {
     api.chores.submittedQueue,
     context?.household ? { householdId: context.household._id } : "skip",
   );
-  const approve = useMutation(api.approvals.approve);
-  const reject = useMutation(api.approvals.reject);
   const approveChore = useMutation(api.chores.approve);
   const rejectChore = useMutation(api.chores.reject);
-
-  async function approveRoutine(routineInstanceId: Id<"routineInstances">) {
-    if (!context?.household) return;
-    await approve({ householdId: context.household._id, routineInstanceId });
-  }
-
-  async function rejectRoutine(routineInstanceId: Id<"routineInstances">) {
-    if (!context?.household) return;
-    await reject({
-      householdId: context.household._id,
-      routineInstanceId,
-      note: "Please check this routine again.",
-    });
-  }
 
   async function approveChoreSubmission(submissionId: Id<"choreSubmissions">) {
     if (!context?.household) return;
@@ -64,17 +49,19 @@ export function ParentApprovalPanel() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => rejectRoutine(instance._id)}>
-              <X aria-hidden className="h-4 w-4" />
-              Reject
-            </Button>
-            <Button onClick={() => approveRoutine(instance._id)}>
-              <Check aria-hidden className="h-4 w-4" />
-              Approve
-            </Button>
+            <Link
+              to="/parent/approvals/$routineInstanceId"
+              params={{ routineInstanceId: instance._id }}
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white shadow-button hover:bg-black"
+            >
+              Review routine
+            </Link>
           </div>
         </Card>
       ))}
+      {(queue ?? []).length === 0 && (choreQueue ?? []).length === 0 ? (
+        <Card><p className="font-bold text-ink/65">No submissions are waiting for review.</p></Card>
+      ) : null}
       {(choreQueue ?? []).map((submission) => (
         <Card
           key={submission.id}

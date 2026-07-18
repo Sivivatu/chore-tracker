@@ -10,8 +10,11 @@ const queryState = vi.hoisted(() => ({
   } as object | null | undefined,
 }));
 
+const createSession = vi.hoisted(() => vi.fn());
+
 vi.mock("convex/react", () => ({
   useQuery: () => queryState.context,
+  useMutation: () => createSession,
 }));
 
 vi.mock("@/app/providers", () => ({
@@ -20,7 +23,7 @@ vi.mock("@/app/providers", () => ({
 }));
 
 vi.mock("../../../convex/_generated/api", () => ({
-  api: { households: { currentContext: {} } },
+  api: { households: { currentContext: {} }, childMode: { createSession: {} } },
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -34,16 +37,24 @@ describe("ChildUnlockPage", () => {
       household: { _id: "household-1" },
       child: { _id: "child-1", name: "Maya" },
     };
+    createSession.mockReset();
+    createSession.mockResolvedValue({
+      childId: "child-1",
+      householdId: "household-1",
+      token: "session-token",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
   });
 
-  it("enters child mode directly without asking for a PIN", () => {
+  it("enters child mode directly without asking for a PIN", async () => {
     render(<ChildUnlockPage />);
 
     expect(screen.queryByLabelText(/pin/i)).not.toBeInTheDocument();
-    expect(screen.getByTestId("redirect")).toHaveTextContent("/child/today");
+    expect(await screen.findByTestId("redirect")).toHaveTextContent("/child/today");
     expect(readChildSession()).toMatchObject({
       childId: "child-1",
       householdId: "household-1",
+      token: "session-token",
     });
   });
 

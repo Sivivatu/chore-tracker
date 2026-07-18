@@ -1,15 +1,53 @@
 import { Navigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { hasClerkConfig, isE2EAuthBypass } from "@/app/providers";
 import { createChildSession, saveChildSession } from "@/lib/child-session";
 
 export function ChildUnlockPage() {
   const context = useQuery(api.households.currentContext);
+  const createSession = useMutation(api.childMode.createSession);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!context?.household || !context.child) return;
+    let cancelled = false;
+    void createSession({ householdId: context.household._id, childId: context.child._id })
+      .then((session) => {
+        if (cancelled) return;
+        saveChildSession(
+          createChildSession(
+            session.childId,
+            session.householdId,
+            session.token,
+            session.expiresAt,
+          ),
+        );
+        setReady(true);
+      })
+      .catch((cause) => {
+        if (!cancelled)
+          setError(cause instanceof Error ? cause.message : "Could not open child mode.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [context?.child?._id, context?.household?._id, createSession]);
 
   if (context?.household && context.child) {
-    saveChildSession(createChildSession(context.child._id, context.household._id));
-    return <Navigate to="/child/today" replace />;
+    if (ready) return <Navigate to="/child/today" replace />;
+    return (
+      <section className="child-stage min-h-[calc(100vh-73px)] px-4 py-8">
+        <p
+          className="mx-auto max-w-md text-center text-sm font-bold text-ink/65"
+          aria-live="polite"
+        >
+          {error || "Opening child mode..."}
+        </p>
+      </section>
+    );
   }
 
   if (context === null) {

@@ -6,6 +6,7 @@ import { ChildRoutinePage } from "./routine";
 const convexState = vi.hoisted(() => ({
   saveRoutineProgress: vi.fn(),
   submitRoutine: vi.fn(),
+  updateSubmittedRoutine: vi.fn(),
   context: {
     household: { _id: "household-1", name: "The Parker Household" },
   },
@@ -17,6 +18,7 @@ const convexState = vi.hoisted(() => ({
     routineTemplateId: "template-1",
     date: "2026-06-29",
     status: "not_started",
+    canUpdateSubmittedRoutine: false,
     snapshotName: "School Morning",
     snapshotType: "morning",
     rejectedAt: undefined as string | undefined,
@@ -63,14 +65,21 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 });
 
 vi.mock("@/lib/child-session", () => ({
-  readChildSession: () => ({ childId: "child-1", householdId: "household-1", name: "Maya" }),
+  readChildSession: () => ({
+    childId: "child-1",
+    householdId: "household-1",
+    token: "session-token",
+    expiresAt: "2099-01-01T00:00:00.000Z",
+  }),
 }));
 
 vi.mock("convex/react", () => ({
-  useMutation: (mutation: { _name?: string }) =>
-    mutation._name?.includes("saveRoutineProgress")
+  useMutation: (mutation?: { _name?: string }) =>
+    mutation?._name?.includes("saveRoutineProgress")
       ? convexState.saveRoutineProgress
-      : convexState.submitRoutine,
+      : mutation?._name?.includes("updateSubmittedRoutine")
+        ? convexState.updateSubmittedRoutine
+        : convexState.submitRoutine,
   useQuery: (query: { _name?: string }) => {
     if (query._name?.includes("currentContext")) return convexState.context;
     if (query._name?.includes("getInstanceWithSteps")) return convexState.instance;
@@ -83,6 +92,7 @@ vi.mock("../../../convex/_generated/api", () => ({
     childMode: {
       saveRoutineProgress: { _name: "saveRoutineProgress" },
       submitRoutine: { _name: "submitRoutine" },
+      updateSubmittedRoutine: { _name: "updateSubmittedRoutine" },
     },
     households: { currentContext: { _name: "currentContext" } },
     routines: { getInstanceWithSteps: { _name: "getInstanceWithSteps" } },
@@ -93,11 +103,13 @@ describe("ChildRoutinePage", () => {
   beforeEach(() => {
     convexState.saveRoutineProgress.mockReset();
     convexState.submitRoutine.mockReset();
+    convexState.updateSubmittedRoutine.mockReset();
     convexState.saveRoutineProgress.mockResolvedValue(null);
     convexState.submitRoutine.mockResolvedValue(null);
     convexState.instance = {
       ...convexState.instance,
       status: "not_started",
+      canUpdateSubmittedRoutine: false,
       rejectionNote: undefined,
       steps: convexState.instance.steps.map((step) => ({
         ...step,
@@ -128,7 +140,7 @@ describe("ChildRoutinePage", () => {
 
     expect(convexState.saveRoutineProgress).toHaveBeenCalledWith({
       householdId: "household-1",
-      childId: "child-1",
+      sessionToken: "session-token",
       routineInstanceId: "routine-1",
       completedStepIds: ["step-1"],
     });
@@ -166,6 +178,26 @@ describe("ChildRoutinePage", () => {
     expect(convexState.submitRoutine).toHaveBeenCalledWith(
       expect.objectContaining({ completedStepIds: ["step-1"] }),
     );
+  });
+
+  it("updates a submitted routine that can still be revised today", async () => {
+    const user = userEvent.setup();
+    convexState.instance = {
+      ...convexState.instance,
+      status: "submitted",
+      canUpdateSubmittedRoutine: true,
+    };
+    render(<ChildRoutinePage />);
+
+    await user.click(screen.getByRole("button", { name: /tick brush teeth/i }));
+    await user.click(screen.getByRole("button", { name: /update submission/i }));
+
+    expect(convexState.updateSubmittedRoutine).toHaveBeenCalledWith({
+      householdId: "household-1",
+      sessionToken: "session-token",
+      routineInstanceId: "routine-1",
+      completedStepIds: ["step-1"],
+    });
   });
 
   it("shows saved steps when continuing an in-progress routine", async () => {

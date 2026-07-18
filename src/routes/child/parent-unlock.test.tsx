@@ -38,7 +38,9 @@ describe("ChildParentUnlockPage", () => {
     sessionStorage.clear();
     mocks.navigate.mockReset();
     mocks.query.mockReset();
-    saveChildSession(createChildSession("child-1", "household-1"));
+    saveChildSession(
+      createChildSession("child-1", "household-1", "test-session", "2099-01-01T00:00:00.000Z"),
+    );
     saveParentReturnPath("/parent/routines");
   });
 
